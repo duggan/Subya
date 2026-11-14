@@ -31,7 +31,10 @@ needs macOS 26 or later.
 3. Edit the captions on the right. You can change the text, the start and end times
    (in seconds), or delete a line. Click ▶ next to a line to play from there. The line
    that's on screen is highlighted.
-4. Use the size slider to make the text bigger or smaller.
+4. Style the captions with the bar above the list: pick a font (Classic, Meme, Rounded,
+   Marker, Typewriter or Poster), put them at the top, middle or bottom, switch all caps
+   on or off, and drag the size slider. The preview updates as you go, and Subya
+   remembers your choices.
 5. Click **Export…** (⌘E).
 
 ## Command line
@@ -43,7 +46,9 @@ swift run subya transcribe clip.mp4 --srt > clip.srt   # edit clip.srt if needed
 swift run subya burn clip.mp4 clip-captioned.mp4 --captions clip.srt
 ```
 
-Without `--captions`, `burn` transcribes first. `--scale 1.3` makes the text 30% bigger.
+Without `--captions`, `burn` transcribes first. Style options: `--font meme` (or classic,
+rounded, marker, typewriter, poster), `--position top|middle|bottom`, `--caps` or
+`--no-caps`, and `--scale 1.3` for text 30% bigger.
 
 ## Development
 

@@ -9,7 +9,14 @@ final class AppModel {
     var videoURL: URL?
     var player: AVPlayer?
     var captions: [Caption] = [] { didSet { if captions != oldValue { refreshOverlay() } } }
-    var textScale: Double = 1.0 { didSet { refreshOverlay() } }
+    /// The caption look, remembered between launches.
+    var style: CaptionStyle = AppModel.savedStyle() {
+        didSet {
+            guard style != oldValue else { return }
+            refreshOverlay()
+            if let data = try? JSONEncoder().encode(style) { UserDefaults.standard.set(data, forKey: Self.styleKey) }
+        }
+    }
     var status = ""
     var isBusy = false
     var errorMessage: String?
@@ -22,6 +29,20 @@ final class AppModel {
     @ObservationIgnored private let overlay = CaptionOverlay()
     @ObservationIgnored private var timeObserver: Any?
     @ObservationIgnored private var statusObservation: NSKeyValueObservation?
+
+    private static let styleKey = "captionStyle"
+
+    private static func savedStyle() -> CaptionStyle {
+        guard let data = UserDefaults.standard.data(forKey: styleKey),
+              let style = try? JSONDecoder().decode(CaptionStyle.self, from: data) else { return .default }
+        return style
+    }
+
+    /// Picking a font also picks its usual case (Meme is all caps); the toggle can override it.
+    func setFont(_ font: CaptionStyle.Font) {
+        style.font = font
+        style.allCaps = font.prefersAllCaps
+    }
 
     func open(_ url: URL) {
         Task { await load(url) }
@@ -56,10 +77,12 @@ final class AppModel {
 
     func refreshOverlay() {
         guard let comp = composition else { return }
-        overlay.update(captions, size: comp.renderSize, scale: textScale)
-        // Redraw the paused frame so edits show immediately.
-        if let player, player.rate == 0 {
-            player.seek(to: player.currentTime(), toleranceBefore: .zero, toleranceAfter: .zero)
+        overlay.update(captions, size: comp.renderSize, style: style)
+        // Redraw the paused frame so edits show immediately. Reassigning the composition makes
+        // the player re-render the current frame; seeking to the current time does not (it's
+        // treated as a no-op, so the preview lagged until the next seek or play).
+        if let item = player?.currentItem, player?.rate == 0 {
+            item.videoComposition = comp
         }
     }
 
@@ -126,7 +149,7 @@ final class AppModel {
         status = "Exporting…"
         defer { isBusy = false }
         player?.pause()
-        overlay.update(captions, size: composition.renderSize, scale: textScale)
+        overlay.update(captions, size: composition.renderSize, style: style)
         do {
             try await CaptionRenderer.export(asset: asset, composition: composition, to: out)
             let size = (try? out.resourceValues(forKeys: [.fileSizeKey]).fileSize).map {

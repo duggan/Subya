@@ -7,11 +7,14 @@ import Foundation
 let usage = """
     usage: subya transcribe <video> [--srt]
            subya burn <video> <output.mp4> [--captions <file.srt>] [--scale <n>]
+                      [--font <name>] [--position top|middle|bottom] [--caps]
 
     transcribe  Print the captions Subya would make (as SRT with --srt).
     burn        Burn captions into a copy of the video. Uses --captions if given
                 (e.g. an edited `transcribe --srt`), otherwise transcribes first.
                 --scale sets the text size (1.0 is the app's default).
+                --font is one of: \(CaptionStyle.Font.allCases.map(\.rawValue).joined(separator: ", ")).
+                --caps sets all caps (on by default for meme; --no-caps turns it off).
     """
 
 func log(_ message: String) {
@@ -59,11 +62,22 @@ do {
 
     case "burn":
         let captionsPath = option("--captions")
-        var scale = 1.0
+        var style = CaptionStyle()
         if let value = option("--scale") {
             guard let n = Double(value) else { fail("--scale must be a number") }
-            scale = n
+            style.scale = n
         }
+        if let value = option("--font") {
+            guard let font = CaptionStyle.Font(rawValue: value.lowercased()) else { fail(usage) }
+            style.font = font
+            style.allCaps = font.prefersAllCaps
+        }
+        if let value = option("--position") {
+            guard let position = CaptionStyle.Position(rawValue: value.lowercased()) else { fail(usage) }
+            style.position = position
+        }
+        if flag("--caps") { style.allCaps = true }
+        if flag("--no-caps") { style.allCaps = false }
         guard args.count == 3 else { fail(usage) }
         let input = URL(fileURLWithPath: args[1]), output = URL(fileURLWithPath: args[2])
         let captions: [Caption]
@@ -77,7 +91,7 @@ do {
         let asset = AVURLAsset(url: input)
         let overlay = CaptionOverlay()
         let composition = try await CaptionRenderer.composition(for: asset, overlay: overlay)
-        overlay.update(captions, size: composition.renderSize, scale: scale)
+        overlay.update(captions, size: composition.renderSize, style: style)
         log("Exporting…")
         try await CaptionRenderer.export(asset: asset, composition: composition, to: output)
         log("Wrote \(output.path)")

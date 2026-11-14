@@ -23,7 +23,12 @@ struct ContentView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(minWidth: 420, minHeight: 260)
-                        captionList.frame(minWidth: 380, idealWidth: 440)
+                        VStack(spacing: 0) {
+                            styleBar
+                            Divider()
+                            captionList
+                        }
+                        .frame(minWidth: 380, idealWidth: 440)
                     }
                 } else {
                     dropZone
@@ -57,6 +62,41 @@ struct ContentView: View {
             .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8]))
             .foregroundStyle(isTargeted ? Color.accentColor : .secondary.opacity(0.4))
             .padding(20))
+    }
+
+    /// Font, position, caps and size. Changes show in the paused preview straight away.
+    private var styleBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Picker("Font", selection: Binding(get: { model.style.font }, set: { model.setFont($0) })) {
+                    ForEach(CaptionStyle.Font.allCases) { font in
+                        Text(font.displayName).tag(font)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 120)
+                .help("Caption font")
+                Picker("Position", selection: $model.style.position) {
+                    ForEach(CaptionStyle.Position.allCases) { position in
+                        Text(position.displayName).tag(position)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help("Where captions sit in the frame")
+                Toggle(isOn: $model.style.allCaps) { Text("AA").fontWeight(.heavy) }
+                    .toggleStyle(.button)
+                    .help("All caps")
+            }
+            HStack(spacing: 6) {
+                Image(systemName: "textformat.size.smaller").foregroundStyle(.secondary)
+                Slider(value: $model.style.scale, in: 0.6...1.8)
+                Image(systemName: "textformat.size.larger").foregroundStyle(.secondary)
+            }
+            .help("Text size")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     private var captionList: some View {
@@ -123,8 +163,6 @@ struct ContentView: View {
             Text(model.status).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             if model.player != nil {
-                Label("Text size", systemImage: "textformat.size").labelStyle(.iconOnly)
-                Slider(value: $model.textScale, in: 0.6...1.6).frame(width: 120)
                 Button("Export…") { model.exportVideo() }
                     .keyboardShortcut("e")
                     .buttonStyle(.borderedProminent)

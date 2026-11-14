@@ -17,17 +17,25 @@ playful rather than slick.
   nothing, and the CLI works from Terminal. Don't add an `SFSpeechRecognizer` call.
 - **Captions are burned in**, not a subtitle track. Messaging apps drop or hide soft
   subtitles, and the point is that the text is always readable.
-- **Caption style** (`CaptionRenderer.image`): Helvetica Neue Bold, white, with a black
-  outline and a soft drop shadow, centred, about 7% of the height above the bottom.
-  Font size is 9.6% of the frame's shorter side, times the text-size slider. Lines
-  wrap at 90% of the width.
+- **Caption style** (`CaptionStyle`, drawn by `CaptionRenderer.image`): always white
+  text with a black outline (round joins, or Impact grows spikes) and a soft drop
+  shadow, centred horizontally. The style picks the font (Classic = Helvetica Neue
+  Bold, Meme = Impact, Rounded = SF Rounded Black, Marker, Typewriter, Poster = Futura
+  Condensed ExtraBold), the position (top, middle or bottom, with a 7% margin), the
+  size and all caps. Font size is 9.6% of the frame's shorter side, times the size
+  slider and a per-font `sizeFactor` that evens out how big faces look. Lines wrap at
+  90% of the width. Choosing Meme turns all caps on, other fonts turn it off; the
+  toggle overrides. The app saves the style in UserDefaults (`captionStyle`, JSON).
 - **Grouping** (`Chunker`): a new caption starts after a pause over 0.6 s, after a
   word ending in `.,?!;:`, or when the line would pass 40 characters. Each caption
   stays up to 0.6 s after its last word, without overlapping the next.
 - **The preview is the export.** The player and the exporter share one
   `AVVideoComposition` whose Core Image handler draws the current caption from a
-  `CaptionOverlay`. Edits update the overlay; the paused frame is redrawn by seeking
-  to the current time.
+  `CaptionOverlay`, which renders each caption image on first use and caches it by
+  text, frame size and style. Edits update the overlay; the paused frame is redrawn
+  by reassigning the item's `videoComposition`. Seeking to the current time does
+  not redraw (AVPlayer treats it as a no-op), which made the preview lag behind
+  style changes.
 - The source video is never modified. Export writes `<name>-captioned.mp4` with
   `AVAssetExportPresetHighestQuality` (H.264, fast start). Messaging apps recompress
   anyway, so file size isn't worth trading quality for.
@@ -41,12 +49,15 @@ playful rather than slick.
     attributed runs into timed words; punctuation-only runs attach to the previous
     word.
   - `SRT.swift`: reads and writes SubRip files.
+  - `CaptionStyle.swift`: fonts, positions, size and caps.
   - `CaptionRenderer.swift`: caption images, `CaptionOverlay` (lock-protected,
-    read on the compositor's thread), the video composition, and export.
+    read and rendered on the compositor's thread), the video composition, and export.
 - `Sources/SubyaApp/`: the SwiftUI app, one window.
-  - `AppModel.swift`: loading, transcription, playback state and export.
+  - `AppModel.swift`: loading, transcription, playback state, the caption style and
+    export.
   - `ContentView.swift`: the drop zone, the preview with its transport bar, the
-    editable caption list, and the bottom bar.
+    style bar (font, position, caps, size) above the editable caption list, and the
+    bottom bar.
   - `PlayerView.swift`: wraps `AVPlayerView` with its own controls off. Don't switch
     to SwiftUI's `VideoPlayer`: it crashed this SwiftPM-built app at first display
     (`getSuperclassMetadata` in `_AVKit_SwiftUI`). AVKit is also linked explicitly in
@@ -59,9 +70,11 @@ playful rather than slick.
     screen-recording permission.
 - `Sources/subya/`: a developer CLI. `subya transcribe <video> [--srt]` prints
   the captions; `subya burn <video> <out.mp4> [--captions file.srt] [--scale n]`
-  exports. Transcribe to SRT, edit it, then burn with `--captions` to script fixes.
+  exports, with `--font`, `--position`, `--caps`/`--no-caps` and `--scale` for the
+  style. Transcribe to SRT, edit it, then burn with `--captions` to script fixes.
 - `Tests/CaptionKitTests/`: unit tests for grouping, SRT, word splitting and the
-  renderer (`swift test`). They don't need a speech model.
+  renderer, including positions, fonts, caps and style changes (`swift test`). They
+  don't need a speech model.
 - `Makefile`: `make run`, `test`, `icons`, `dmg` and `release`. It builds a
   universal app with a Developer ID signature and hardened runtime, not sandboxed,
   with bundle ID `ie.duggan.Subya`. Notarization uses the keychain profile
