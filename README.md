@@ -38,7 +38,13 @@ needs macOS 26 or later.
    just add your lines.
 5. Style the captions with the bar above the list: pick a style (Classic, Meme, Rounded,
    Marker, Typewriter, Poster, Boxed or Highlight), put them at the top, middle or
-   bottom, switch all caps on or off, and drag the size slider. The preview updates as
+   bottom, switch all caps on or off, and drag the size slider. Turn on **One word**
+   to show each word alone as it's spoken, a punchy look for reaction clips (the
+   **One Word** style does this big and centred). In this mode the timeline splits each
+   caption into its words: drag the line between two words to change when the second
+   one appears. Zoom the timeline in to give words room: use the magnifiers or slider
+   by the time, pinch on the timeline, or ⌘+ and ⌘− (⌘0 fits the whole video). When
+   zoomed, scroll sideways; the timeline follows the playhead as it plays. The preview updates as
    you go, and Subya remembers your choices.
 6. Click **Export…** (⌘E).
 
@@ -48,7 +54,8 @@ Open **Subya › Settings…** (⌘,), or click the brush next to the style pick
 
 - **Styles:** make your own caption styles. Duplicate one, then pick any font on your
   Mac, the text and outline colours, the outline thickness, a shadow, a box behind the
-  text (with see-through colours, if you like), where it sits, its size and caps. A
+  text (with see-through colours, if you like), where it sits, its size and caps, and
+  whether it shows whole lines or one word at a time. A
   live preview shows each change.
 - **General:** the transcription language (for clips not in your Mac's language), how
   captions are split (longest line, the pause that starts a new caption, how long
@@ -66,7 +73,8 @@ swift run subya burn clip.mp4 clip-captioned.mp4 --captions clip.srt
 
 Without `--captions`, `burn` transcribes first. `--style <name>` picks a style, including
 your own from Settings (`subya styles` lists them). `--position top|middle|bottom`,
-`--caps` or `--no-caps`, and `--scale 1.3` (text 30% bigger) adjust it. `--small` saves at
+`--caps` or `--no-caps`, `--scale 1.3` (text 30% bigger) and `--words` (one word at a
+time) adjust it. `--small` saves at
 720p, and `--language fr-FR` transcribes in another language.
 
 ## Development

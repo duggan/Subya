@@ -10,9 +10,22 @@ struct SubyaApp: App {
             ContentView(model: model)
                 .task { await handleLaunchArguments() }
         }
+        .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open Video…") { model.chooseFile() }.keyboardShortcut("o")
+            }
+            CommandGroup(after: .toolbar) {
+                Button("Zoom In Timeline") { model.zoomTimeline(by: 1.5) }
+                    .keyboardShortcut("=")
+                    .disabled(model.player == nil)
+                Button("Zoom Out Timeline") { model.zoomTimeline(by: 1 / 1.5) }
+                    .keyboardShortcut("-")
+                    .disabled(model.player == nil)
+                Button("Fit Timeline") { model.setTimelineZoom(1) }
+                    .keyboardShortcut("0")
+                    .disabled(model.player == nil)
+                Divider()
             }
             CommandMenu("Captions") {
                 Button("Add Line at Playhead") { model.addCaption() }
@@ -31,6 +44,7 @@ struct SubyaApp: App {
     /// Developer options:
     ///   --open <video>       load a video at launch (the same path as a drop)
     ///   --add-line <seconds> after loading, add a caption line at that time (like + Line)
+    ///   --zoom <n>           after loading, zoom the timeline in n times
     ///   --settings <tab>     open Settings on "general" or "styles"; with --snapshot, the
     ///                        image is of the Settings window (works without --open)
     ///   --snapshot <png>     after loading, save an image of the window (for checking layout
@@ -58,6 +72,9 @@ struct SubyaApp: App {
         try? await Task.sleep(for: .milliseconds(300))
         for _ in 0..<600 where model.isBusy || model.player == nil {
             try? await Task.sleep(for: .milliseconds(100))
+        }
+        if let zoom = value(after: "--zoom").flatMap(Double.init) {
+            model.setTimelineZoom(zoom)
         }
         if let seconds = value(after: "--add-line").flatMap(Double.init) {
             model.seek(to: seconds)

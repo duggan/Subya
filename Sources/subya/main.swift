@@ -11,14 +11,15 @@ let usage = """
     usage: subya transcribe <video> [--srt] [--language <id>]
            subya burn <video> <output.mp4> [--captions <file.srt>] [--language <id>]
                       [--style <name>] [--position top|middle|bottom] [--caps|--no-caps]
-                      [--scale <n>] [--small]
+                      [--scale <n>] [--words|--lines] [--small]
            subya styles
 
     transcribe  Print the captions Subya would make (as SRT with --srt).
     burn        Burn captions into a copy of the video. Uses --captions if given
                 (e.g. an edited `transcribe --srt`), otherwise transcribes first.
                 --style picks a style by name, including your own from the app's
-                Settings (default: Classic). --position, --caps and --scale override it.
+                Settings (default: Classic). --position, --caps, --scale and --words
+                (one word at a time) or --lines override it.
                 --small scales the video down to 720p for messaging.
     styles      List the style names --style accepts.
     --language  A locale like en-IE or fr-FR (default: this Mac's language).
@@ -88,6 +89,8 @@ do {
             guard let position = CaptionStyle.Position(rawValue: value.lowercased()) else { fail(usage) }
             style.position = position
         }
+        if flag("--words") { style.display = .word }
+        if flag("--lines") { style.display = .line }
         if flag("--caps") { style.allCaps = true }
         if flag("--no-caps") { style.allCaps = false }
         guard args.count == 3 else { fail(usage) }

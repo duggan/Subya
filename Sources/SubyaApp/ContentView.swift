@@ -51,7 +51,8 @@ struct ContentView: View {
         .alert("Something went wrong", isPresented: .constant(model.errorMessage != nil)) {
             Button("OK") { model.errorMessage = nil }
         } message: { Text(model.errorMessage ?? "") }
-        .frame(minWidth: 820, minHeight: 460)
+        .frame(minWidth: 900, minHeight: 560)
+        .background(InitialWindowSize(width: 1280, height: 820))
         .onAppear {
             // Developer option: --settings <tab> opens Settings at launch.
             if CommandLine.arguments.contains("--settings") { openSettings() }
@@ -110,7 +111,14 @@ struct ContentView: View {
                     .help("All caps")
             }
             HStack(spacing: 6) {
+                Toggle(isOn: Binding(get: { model.choice.display == .word },
+                                     set: { model.choice.display = $0 ? .word : .line })) {
+                    Label("One word", systemImage: "text.word.spacing")
+                }
+                .toggleStyle(.button)
+                .help("Show one word at a time, as each is spoken")
                 Image(systemName: "textformat.size.smaller").foregroundStyle(.secondary)
+                    .padding(.leading, 6)
                 Slider(value: $model.choice.scale, in: 0.6...1.8)
                 Image(systemName: "textformat.size.larger").foregroundStyle(.secondary)
             }
@@ -187,12 +195,31 @@ struct ContentView: View {
             Text("\(Self.format(model.currentTime)) / \(Self.format(model.duration))")
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
+            zoomControl
             Button { model.addCaption() } label: { Label("Line", systemImage: "plus") }
                 .disabled(model.isBusy)
                 .help("Add a caption line at the playhead (⌘N)")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+    }
+
+    /// Timeline zoom: −/+ and a slider on a log scale, from fitting the whole video to
+    /// `maxTimelineZoom`.
+    private var zoomControl: some View {
+        let maxZoom = max(model.maxTimelineZoom, 1.01)
+        return HStack(spacing: 2) {
+            Button { model.zoomTimeline(by: 1 / 1.5) } label: { Image(systemName: "minus.magnifyingglass") }
+                .disabled(model.timelineZoom <= 1)
+            Slider(value: Binding(get: { log(model.timelineZoom) / log(maxZoom) },
+                                  set: { model.setTimelineZoom(exp($0 * log(maxZoom))) }),
+                   in: 0...1)
+                .frame(width: 70)
+            Button { model.zoomTimeline(by: 1.5) } label: { Image(systemName: "plus.magnifyingglass") }
+                .disabled(model.timelineZoom >= maxZoom)
+        }
+        .buttonStyle(.borderless)
+        .help("Zoom the timeline (⌘+ and ⌘−, ⌘0 to fit, or pinch on it)")
     }
 
     private static func format(_ t: Double) -> String {
@@ -217,5 +244,46 @@ struct ContentView: View {
         }
         .padding(10)
         .background(.bar)
+    }
+}
+
+/// Opens the window roomy (up to 1280×820, within 90% of the screen) the first time, so
+/// the preview and timeline have space. SwiftUI's `defaultSize` and
+/// `defaultWindowPlacement` were both ignored here (the window opened at its minimum),
+/// so this sets the size through AppKit once macOS has no saved frame for the window.
+/// After that, macOS remembers whatever size the user picks.
+private struct InitialWindowSize: NSViewRepresentable {
+    let width: CGFloat
+    let height: CGFloat
+
+    func makeNSView(context: Context) -> NSView { Sizer(size: CGSize(width: width, height: height)) }
+    func updateNSView(_ view: NSView, context: Context) {}
+
+    private final class Sizer: NSView {
+        let size: CGSize
+        private var done = false
+
+        init(size: CGSize) {
+            self.size = size
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) { fatalError("not used") }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard !done, let window else { return }
+            done = true
+            let key = "NSWindow Frame \(window.frameAutosaveName)"
+            guard window.frameAutosaveName.isEmpty || UserDefaults.standard.string(forKey: key) == nil,
+                  let screen = window.screen ?? NSScreen.main else { return }
+            let visible = screen.visibleFrame
+            let target = CGSize(width: min(size.width, visible.width * 0.9), height: min(size.height, visible.height * 0.9))
+            // Let SwiftUI finish its own sizing first, then apply ours.
+            DispatchQueue.main.async {
+                window.setContentSize(target)
+                window.center()
+            }
+        }
     }
 }

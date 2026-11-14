@@ -27,6 +27,7 @@ final class AppModel {
         style.position = choice.position
         style.scale = choice.scale
         style.allCaps = choice.allCaps
+        style.display = choice.display
         return style
     }
 
@@ -35,6 +36,17 @@ final class AppModel {
     var errorMessage: String?
     var isPlaying = false
     var currentTime: Double = 0
+    /// How far the timeline is zoomed in: 1 fits the whole video in view.
+    private(set) var timelineZoom: Double = 1
+    /// Up to about 400 points per second on a 600-point timeline, so short words have room.
+    var maxTimelineZoom: Double { max(4, duration * 400 / 600) }
+
+    func setTimelineZoom(_ zoom: Double) {
+        timelineZoom = min(max(zoom, 1), maxTimelineZoom)
+    }
+
+    func zoomTimeline(by factor: Double) { setTimelineZoom(timelineZoom * factor) }
+
     /// Set after adding a line, so the view can focus and scroll to its text field.
     var focusRequest: Caption.ID?
     private(set) var duration: Double = 0
@@ -55,12 +67,24 @@ final class AppModel {
         var position: CaptionStyle.Position
         var scale: Double
         var allCaps: Bool
+        var display: CaptionStyle.Display
 
         init(_ style: CaptionStyle) {
             styleID = style.id
             position = style.position
             scale = style.scale
             allCaps = style.allCaps
+            display = style.display
+        }
+
+        // Saved choices from before `display` existed still load.
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            styleID = try c.decode(CaptionStyle.ID.self, forKey: .styleID)
+            position = try c.decode(CaptionStyle.Position.self, forKey: .position)
+            scale = try c.decode(Double.self, forKey: .scale)
+            allCaps = try c.decode(Bool.self, forKey: .allCaps)
+            display = try c.decodeIfPresent(CaptionStyle.Display.self, forKey: .display) ?? .line
         }
     }
 
@@ -106,6 +130,7 @@ final class AppModel {
         errorMessage = nil
         captions = []
         words = []
+        timelineZoom = 1
         videoURL = url
         defer { isBusy = false }
         do {
@@ -210,11 +235,18 @@ final class AppModel {
         seek(to: edge == .start ? cap.start : max(cap.start, cap.end - 0.04))
     }
 
-    /// Jumps to a caption and focuses its text in the list.
-    func select(_ id: Caption.ID) {
+    /// Moves when a word appears (one-word display); the preview shows that word.
+    func setWordStart(_ index: Int, of id: Caption.ID, to time: Double) {
+        captions.setWordStart(index, of: id, to: time)
+        guard let cap = captions.first(where: { $0.id == id }), cap.timedWords.indices.contains(index) else { return }
+        seek(to: cap.timedWords[index].start)
+    }
+
+    /// Jumps to a caption (or a time within it) and focuses its text in the list.
+    func select(_ id: Caption.ID, at time: Double? = nil) {
         guard let cap = captions.first(where: { $0.id == id }) else { return }
         player?.pause()
-        seek(to: cap.start)
+        seek(to: time ?? cap.start)
         focusRequest = id
     }
 

@@ -22,14 +22,24 @@ playful rather than slick.
   text colour, an outline (colour and width as a fraction of the font size, 0 for
   none, with round joins or Impact grows spikes), an optional soft shadow, an optional
   rounded box behind the text (colour with opacity), a position (top, middle or
-  bottom, 7% margin), a size and all caps. Text is centred and wraps at 90% of the
-  width. Font size is 9.6% of the frame's shorter side times `scale`. Eight built-ins
+  bottom, 7% margin), a size, all caps, and `display`: whole lines (default) or one
+  word at a time. Text is centred and wraps at 90% of the width. Font size is 9.6% of the frame's shorter side times `scale`. Eight built-ins
   (Classic, Meme, Rounded, Marker, Typewriter, Poster, Boxed, Highlight) have fixed
   UUIDs (`5B0BA000-…-00000000000N`) and per-face scales so they look the same size.
   Users duplicate one to make their own in Settings. An unknown font falls back to
-  the heavy system font.
+  the heavy system font. `CaptionStyle` decodes every field with a default, so styles
+  saved before a field existed still load; keep that when adding fields.
+- **One word at a time**: `Caption.wordStarts` keeps the transcript's word start
+  times (set by `Chunker`). `Caption.timedWords` uses them while they still fit the
+  text (same word count, in order, inside the caption), so a typo fix keeps them;
+  otherwise, and for lines from SRT or "+ Line", it shares the caption's time out by
+  word length (+2 characters each, so short words don't flash). The first word shows
+  from the caption's start, the last until its end. Moving a caption shifts its word
+  times; retiming an edge stretches them; `setWordStart` retimes one word. `CaptionOverlay` then draws only the
+  current word (cached per word). The built-in One Word style (SF Rounded, caps,
+  middle, large) uses it, and the main window has a quick toggle.
 - **Style choice in the main window** (`AppModel.StyleChoice`, saved as `styleChoice`):
-  the chosen style's id plus quick adjustments (position, size, caps). Picking a style
+  the chosen style's id plus quick adjustments (position, size, caps, one word). Picking a style
   resets them to the style's own. Editing the chosen style in Settings shows at once
   (its values replace the adjustments); deleting it falls back to Classic.
 - **Grouping** (`Chunker`): a new caption starts after a pause, after a word ending in
@@ -91,7 +101,17 @@ playful rather than slick.
   - `CaptionTimeline.swift`: the track under the video. One block per caption; drag
     a block to move it, its edges to retime it, click it to jump there and focus its
     text, click or drag the empty track to scrub. While dragging, the preview seeks
-    to the edge being moved (the end edge shows the caption's last frame).
+    to the edge being moved (the end edge shows the caption's last frame). In one-word
+    display, blocks split into their words (labels when there's room): drag a divider
+    to change when that word appears (`setWordStart`, which first fixes spread-out
+    timings in place, keeps words at least 0.08 s and inside the caption), and click a
+    word to jump to it.
+    The timeline zooms (`AppModel.timelineZoom`, 1 = whole video in view, up to about
+    400 points per second): −/+ and a log-scale slider in the transport bar, pinch, and
+    View › Zoom In/Out Timeline (⌘= ⌘−) and Fit Timeline (⌘0). Zoomed, it scrolls
+    sideways (`ScrollPosition`), follows the playhead when it leaves the view (not
+    while dragging), and zooming keeps the playhead's place on screen. A ruler above
+    the blocks labels times, spaced at least 60 points apart.
   - `Preferences.swift`: `Pref` keys and defaults, `ExportLocation`, `ExportQuality`,
     and `StyleStore` (the custom styles, saved as they change).
   - `SettingsView.swift`: Settings (⌘,). General: language (from
@@ -103,10 +123,15 @@ playful rather than slick.
     to SwiftUI's `VideoPlayer`: it crashed this SwiftPM-built app at first display
     (`getSuperclassMetadata` in `_AVKit_SwiftUI`). AVKit is also linked explicitly in
     `Package.swift` for the same reason.
+  - The window opens at 1280×820 (within 90% of the screen) the first time, via
+    `InitialWindowSize` in `ContentView.swift`, which sets the size through AppKit when
+    there's no saved frame. SwiftUI's `defaultSize` and `defaultWindowPlacement` were
+    both ignored (the window opened at its minimum, 900×560), so don't swap back
+    without checking the real window size.
   - The bars are stacked in a `VStack`, not added with `safeAreaInset`, because
     `HSplitView` ignores safe-area insets and the bar would cover the transport row.
   - Developer launch options: `--open <video>` loads a file as if dropped,
-    `--add-line <seconds>` then adds a line there, `--settings general|styles` opens
+    `--add-line <seconds>` then adds a line there, `--zoom <n>` zooms the timeline, `--settings general|styles` opens
     Settings on that tab (via `openSettings`; the old `showSettingsWindow:` action no
     longer works), and `--snapshot <png>` saves an image of the main window, or of
     Settings with `--settings`. The snapshot draws native controls poorly and
@@ -115,10 +140,10 @@ playful rather than slick.
 - `Sources/subya/`: a developer CLI. `subya transcribe <video> [--srt]` prints
   the captions; `subya burn <video> <out.mp4> [--captions file.srt]` exports, with
   `--style <name>` (built-in or the user's own), `--position`, `--caps`/`--no-caps`,
-  `--scale` and `--small` (720p). Both take `--language <id>`. `subya styles` lists
+  `--scale`, `--words`/`--lines` and `--small` (720p). Both take `--language <id>`. `subya styles` lists
   style names. Transcribe to SRT, edit it, then burn with `--captions` to script fixes.
 - `Tests/CaptionKitTests/`: unit tests for grouping, inserting lines, timeline moves and
-  resizes, SRT, word splitting, styles (built-ins, saving, lookup, font fallback),
+  resizes, word-at-a-time timing, SRT, word splitting, styles (built-ins, saving, lookup, font fallback),
   export naming and sizes, and the renderer (positions, colours, outline, box, caps,
   every built-in, style changes) (`swift test`). They don't need a speech model.
 - `Makefile`: `make run`, `test`, `icons`, `dmg` and `release`. It builds a

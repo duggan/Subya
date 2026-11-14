@@ -245,6 +245,10 @@ private struct StyleEditor: View {
                         Slider(value: $style.scale, in: 0.6...1.8)
                     }
                     Toggle("All caps", isOn: $style.allCaps)
+                    Picker("Show", selection: $style.display) {
+                        ForEach(CaptionStyle.Display.allCases) { Text($0.displayName).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
                 }
                 .disabled(isBuiltIn)
             }

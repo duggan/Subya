@@ -35,6 +35,14 @@ public struct CaptionStyle: Identifiable, Codable, Hashable, Sendable {
         public var displayName: String { rawValue.capitalized }
     }
 
+    /// Whole lines (the default), or one word at a time as each is spoken.
+    public enum Display: String, CaseIterable, Identifiable, Sendable, Codable {
+        case line, word
+
+        public var id: String { rawValue }
+        public var displayName: String { self == .line ? "Whole line" : "One word at a time" }
+    }
+
     /// `fontName` for the system's rounded face (SF Rounded), which has no stable
     /// PostScript name.
     public static let systemRounded = "system-rounded"
@@ -55,11 +63,13 @@ public struct CaptionStyle: Identifiable, Codable, Hashable, Sendable {
     /// Text size relative to the default (1.0 is 9.6% of the frame's shorter side).
     public var scale: Double
     public var allCaps: Bool
+    public var display: Display
 
     public init(id: UUID = UUID(), name: String = "Classic", fontName: String = "HelveticaNeue-Bold",
                 textColor: RGBA = .white, outlineColor: RGBA = .black, outlineWidth: Double = 0.093,
                 shadow: Bool = true, box: Bool = false, boxColor: RGBA = RGBA(0, 0, 0, 0.75),
-                position: Position = .bottom, scale: Double = 1.0, allCaps: Bool = false) {
+                position: Position = .bottom, scale: Double = 1.0, allCaps: Bool = false,
+                display: Display = .line) {
         self.id = id
         self.name = name
         self.fontName = fontName
@@ -72,6 +82,32 @@ public struct CaptionStyle: Identifiable, Codable, Hashable, Sendable {
         self.position = position
         self.scale = scale
         self.allCaps = allCaps
+        self.display = display
+    }
+
+    // Every field decodes with a default, so styles saved by earlier versions (before a
+    // field existed) still load instead of being dropped.
+    private enum CodingKeys: String, CodingKey {
+        case id, name, fontName, textColor, outlineColor, outlineWidth, shadow, box, boxColor, position, scale,
+             allCaps, display
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = CaptionStyle()
+        self.init(id: try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID(),
+                  name: try c.decodeIfPresent(String.self, forKey: .name) ?? "Untitled",
+                  fontName: try c.decodeIfPresent(String.self, forKey: .fontName) ?? d.fontName,
+                  textColor: try c.decodeIfPresent(RGBA.self, forKey: .textColor) ?? d.textColor,
+                  outlineColor: try c.decodeIfPresent(RGBA.self, forKey: .outlineColor) ?? d.outlineColor,
+                  outlineWidth: try c.decodeIfPresent(Double.self, forKey: .outlineWidth) ?? d.outlineWidth,
+                  shadow: try c.decodeIfPresent(Bool.self, forKey: .shadow) ?? d.shadow,
+                  box: try c.decodeIfPresent(Bool.self, forKey: .box) ?? d.box,
+                  boxColor: try c.decodeIfPresent(RGBA.self, forKey: .boxColor) ?? d.boxColor,
+                  position: try c.decodeIfPresent(Position.self, forKey: .position) ?? d.position,
+                  scale: try c.decodeIfPresent(Double.self, forKey: .scale) ?? d.scale,
+                  allCaps: try c.decodeIfPresent(Bool.self, forKey: .allCaps) ?? d.allCaps,
+                  display: try c.decodeIfPresent(Display.self, forKey: .display) ?? d.display)
     }
 
     public func font(size: CGFloat) -> NSFont { Self.font(named: fontName, size: size) }
@@ -120,6 +156,8 @@ public struct CaptionStyle: Identifiable, Codable, Hashable, Sendable {
                      boxColor: RGBA(0, 0, 0, 0.72), scale: 0.9),
         CaptionStyle(id: builtInID(8), name: "Highlight", fontName: systemRounded, textColor: .black,
                      outlineWidth: 0, shadow: false, box: true, boxColor: .white, scale: 0.9),
+        CaptionStyle(id: builtInID(9), name: "One Word", fontName: systemRounded, outlineWidth: 0.11,
+                     position: .middle, scale: 1.7, allCaps: true, display: .word),
     ]
 
     public static let `default` = builtIns[0]

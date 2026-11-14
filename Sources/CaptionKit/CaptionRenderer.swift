@@ -23,7 +23,9 @@ public final class CaptionOverlay: @unchecked Sendable {
 
     public func update(_ captions: [Caption], size: CGSize, style: CaptionStyle) {
         let visible = captions.filter { $0.end > $0.start && !Self.trimmed($0.text).isEmpty }
-        let texts = Set(visible.map { Self.trimmed($0.text) })
+        let texts: Set<String> = style.display == .word
+            ? Set(visible.flatMap { $0.timedWords.map(\.text) })
+            : Set(visible.map { Self.trimmed($0.text) })
         lock.withLock {
             self.captions = visible
             self.size = size
@@ -35,15 +37,24 @@ public final class CaptionOverlay: @unchecked Sendable {
         }
     }
 
-    public func image(at time: Double) -> CIImage? {
+    /// The text on screen at `time`: the caption's line, or in one-word display, the word
+    /// being spoken.
+    func displayText(at time: Double) -> String? {
         lock.lock()
         let caption = captions.first { time >= $0.start && time < $0.end }
+        let display = style.display
+        lock.unlock()
+        guard let caption else { return nil }
+        return display == .word ? caption.word(at: time) : Self.trimmed(caption.text)
+    }
+
+    public func image(at time: Double) -> CIImage? {
+        guard let text = displayText(at: time) else { return nil }
+        lock.lock()
         let frameSize = size, currentStyle = style
         lock.unlock()
 
-        guard let caption else { return nil }
-        let key = Key(text: Self.trimmed(caption.text), width: Int(frameSize.width), height: Int(frameSize.height),
-                      style: currentStyle)
+        let key = Key(text: text, width: Int(frameSize.width), height: Int(frameSize.height), style: currentStyle)
         if let cached = lock.withLock({ cache[key] }) { return cached }
         guard let cg = CaptionRenderer.image(text: key.text, size: frameSize, style: currentStyle) else { return nil }
         let image = CIImage(cgImage: cg)
