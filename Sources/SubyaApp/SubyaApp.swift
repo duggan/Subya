@@ -1,3 +1,4 @@
+import CaptionKit
 import AppKit
 import SwiftUI
 
@@ -45,6 +46,8 @@ struct SubyaApp: App {
     ///   --open <video>       load a video at launch (the same path as a drop)
     ///   --add-line <seconds> after loading, add a caption line at that time (like + Line)
     ///   --zoom <n>           after loading, zoom the timeline in n times
+    ///   --crop <shape>       after loading, crop to the centred 1:1, 9:16, 4:5 or 16:9
+    ///   --crop-edit          after loading, open the crop editor
     ///   --settings <tab>     open Settings on "general" or "styles"; with --snapshot, the
     ///                        image is of the Settings window (works without --open)
     ///   --snapshot <png>     after loading, save an image of the window (for checking layout
@@ -72,6 +75,13 @@ struct SubyaApp: App {
         try? await Task.sleep(for: .milliseconds(300))
         for _ in 0..<600 where model.isBusy || model.player == nil {
             try? await Task.sleep(for: .milliseconds(100))
+        }
+        if let aspect = value(after: "--crop").flatMap(Crop.Aspect.init(name:)) {
+            model.startCropping()
+            model.setCropAspect(aspect)
+            if !args.contains("--crop-edit") { model.finishCropping() }
+        } else if args.contains("--crop-edit") {
+            model.startCropping()
         }
         if let zoom = value(after: "--zoom").flatMap(Double.init) {
             model.setTimelineZoom(zoom)

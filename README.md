@@ -46,7 +46,10 @@ needs macOS 26 or later.
    by the time, pinch on the timeline, or ⌘+ and ⌘− (⌘0 fits the whole video). When
    zoomed, scroll sideways; the timeline follows the playhead as it plays. The preview updates as
    you go, and Subya remembers your choices.
-6. Click **Export…** (⌘E).
+6. To crop, click **Crop** at the bottom. Pick a shape (1:1, 9:16 for Stories, 4:5, 16:9,
+   the original, or free), drag the frame to move it and its corners to resize it, then
+   click **Done**. Captions are placed inside the cropped frame.
+7. Click **Export…** (⌘E).
 
 ## Settings
 
@@ -74,7 +77,7 @@ swift run subya burn clip.mp4 clip-captioned.mp4 --captions clip.srt
 Without `--captions`, `burn` transcribes first. `--style <name>` picks a style, including
 your own from Settings (`subya styles` lists them). `--position top|middle|bottom`,
 `--caps` or `--no-caps`, `--scale 1.3` (text 30% bigger) and `--words` (one word at a
-time) adjust it. `--small` saves at
+time) adjust it. `--crop 9:16` (or 1:1, 4:5, 16:9) crops to the centre of the frame. `--small` saves at
 720p, and `--language fr-FR` transcribes in another language.
 
 ## Development

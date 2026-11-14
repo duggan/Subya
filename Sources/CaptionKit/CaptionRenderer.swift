@@ -142,26 +142,41 @@ public enum CaptionRenderer {
     }
 
     /// The composition that draws captions over the video, for both the preview and export.
-    /// With `maxLongSide`, frames are scaled down so the longer side is at most that many
-    /// pixels (the overlay must then be updated with the composition's `renderSize`).
-    public static func composition(for asset: AVAsset, overlay: CaptionOverlay,
+    /// With a `crop`, frames are cut to it; with `maxLongSide`, they're then scaled down so
+    /// the longer side is at most that many pixels. Update the overlay with the result's
+    /// `renderSize`, so captions sit in the cropped, scaled frame.
+    public static func composition(for asset: AVAsset, overlay: CaptionOverlay, crop: Crop = .full,
                                    maxLongSide: CGFloat? = nil) async throws -> AVVideoComposition {
-        let natural = try await composition(for: asset, overlay: overlay, scale: 1, size: nil)
-        let target = ExportNaming.exportSize(for: natural.renderSize, maxLongSide: maxLongSide)
-        guard target != natural.renderSize else { return natural }
-        let scale = target.width / natural.renderSize.width
-        let scaled = try await composition(for: asset, overlay: overlay, scale: scale, size: target)
-        return (LegacyComposition.self as RenderSizing.Type).withRenderSize(scaled, target) ?? natural
+        let natural = try await composition(for: asset, overlay: overlay, transform: nil)
+        let frame = natural.renderSize
+        let cropRect = crop.isFull ? CGRect(origin: .zero, size: frame) : crop.pixelRect(in: frame)
+        let target = ExportNaming.exportSize(for: cropRect.size, maxLongSide: maxLongSide)
+        guard target != frame else { return natural }
+        let transform = FrameTransform(crop: cropRect, scale: target.width / cropRect.width, size: target)
+        let transformed = try await composition(for: asset, overlay: overlay, transform: transform)
+        return (LegacyComposition.self as RenderSizing.Type).withRenderSize(transformed, target) ?? natural
     }
 
-    private static func composition(for asset: AVAsset, overlay: CaptionOverlay, scale: CGFloat,
-                                     size: CGSize?) async throws -> AVVideoComposition {
+    /// Cut each frame to `crop` (pixels, Core Image coordinates), move it to the origin,
+    /// scale it, and trim to the output `size`.
+    private struct FrameTransform: Sendable {
+        let crop: CGRect
+        let scale: CGFloat
+        let size: CGSize
+
+        func apply(to image: CIImage) -> CIImage {
+            image.cropped(to: crop)
+                .transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY))
+                .transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+                .cropped(to: CGRect(origin: .zero, size: size))
+        }
+    }
+
+    private static func composition(for asset: AVAsset, overlay: CaptionOverlay,
+                                     transform: FrameTransform?) async throws -> AVVideoComposition {
         try await AVVideoComposition.videoComposition(with: asset, applyingCIFiltersWithHandler: { request in
             var image = request.sourceImage
-            if let size, scale != 1 {
-                image = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-                    .cropped(to: CGRect(origin: .zero, size: size))
-            }
+            if let transform { image = transform.apply(to: image) }
             if let caption = overlay.image(at: request.compositionTime.seconds) {
                 image = caption.composited(over: image)
             }

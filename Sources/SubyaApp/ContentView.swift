@@ -18,7 +18,9 @@ struct ContentView: View {
                         VStack(spacing: 0) {
                             PlayerView(player: player)
                                 .contentShape(Rectangle())
-                                .onTapGesture { model.togglePlay() }
+                                .onTapGesture { if !model.isCropping { model.togglePlay() } }
+                                .overlay { if model.isCropping { CropOverlay(model: model) } }
+                                .overlay(alignment: .top) { if model.isCropping { CropToolbar(model: model) } }
                                 .layoutPriority(-1)
                             Divider()
                             CaptionTimeline(model: model)
@@ -227,6 +229,12 @@ struct ContentView: View {
         return String(format: "%d:%04.1f", Int(t) / 60, t.truncatingRemainder(dividingBy: 60))
     }
 
+    private var cropLabel: String {
+        if model.crop.isFull { return "Crop" }
+        let px = model.crop.pixelRect(in: model.frameSize)
+        return model.cropAspect == .free ? "Crop: \(Int(px.width))×\(Int(px.height))" : "Crop: \(model.cropAspect.displayName)"
+    }
+
     private var bottomBar: some View {
         HStack(spacing: 14) {
             if model.player != nil {
@@ -236,6 +244,11 @@ struct ContentView: View {
             Text(model.status).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             if model.player != nil {
+                Button { model.startCropping() } label: {
+                    Label(cropLabel, systemImage: "crop")
+                }
+                .disabled(model.isCropping || model.isBusy)
+                .help("Crop the video, for example to 9:16 for Stories or 1:1")
                 Button("Export…") { model.exportVideo() }
                     .keyboardShortcut("e")
                     .buttonStyle(.borderedProminent)

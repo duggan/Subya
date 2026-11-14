@@ -64,6 +64,14 @@ playful rather than slick.
   Changing the render size needs the deprecated `AVMutableVideoComposition` (the macOS
   26 `Configuration` API can't hold a CI filter handler); it's called through a
   protocol so the build stays warning-free.
+- **Crop** (`Crop`): a rectangle in fractions of the frame, origin top left as on
+  screen. `pixelRect` turns it into an even-sided pixel rect in Core Image
+  coordinates (origin bottom left). The composition's CI handler crops, moves to the
+  origin, then scales (for 720p), and the render size becomes the cropped (scaled)
+  size, so captions are laid out in the cropped frame and the preview matches the
+  export. Shapes: Free, Original, 1:1, 9:16, 4:5, 16:9; picking one snaps to the
+  largest centred crop of that shape, and corner drags keep it. The crop belongs to
+  the open video and isn't saved.
 - **Preferences** (`Pref` in `Preferences.swift`): UserDefaults keys with registered
   defaults, read where they're used: `transcriptionLanguage` ("" = system),
   `maxLineLength`, `splitPause`, `linger`, `exportLocation`, `exportFolder`,
@@ -87,6 +95,7 @@ playful rather than slick.
   - `CaptionStyle.swift`: `CaptionStyle`, `RGBA` and the built-in styles.
   - `StyleLibrary.swift`: loading and saving custom styles, lookup by name.
   - `ExportNaming.swift`: export file names and the scaled-down export size.
+  - `Crop.swift`: the crop rectangle, shape presets, moving and resizing.
   - `CaptionRenderer.swift`: caption images, `CaptionOverlay` (lock-protected,
     read and rendered on the compositor's thread), the video composition, and export.
 - `Sources/SubyaApp/`: the SwiftUI app: the main window and Settings.
@@ -119,6 +128,11 @@ playful rather than slick.
     custom styles with +/−, and an editor with a live preview on a stand-in frame;
     built-ins are read-only ("Duplicate to Edit"). The font picker is family then
     face; switching family picks its heaviest face.
+  - `CropOverlay.swift`: the crop editor drawn over the preview (dimmed outside the
+    crop, thirds grid, drag inside to move, corners to resize) and its toolbar
+    (shapes, Reset, Cancel, Done). While editing, the preview shows the whole frame
+    without captions; Done rebuilds the composition with the crop. The bottom bar's
+    Crop button opens it and shows the current crop.
   - `PlayerView.swift`: wraps `AVPlayerView` with its own controls off. Don't switch
     to SwiftUI's `VideoPlayer`: it crashed this SwiftPM-built app at first display
     (`getSuperclassMetadata` in `_AVKit_SwiftUI`). AVKit is also linked explicitly in
@@ -131,7 +145,8 @@ playful rather than slick.
   - The bars are stacked in a `VStack`, not added with `safeAreaInset`, because
     `HSplitView` ignores safe-area insets and the bar would cover the transport row.
   - Developer launch options: `--open <video>` loads a file as if dropped,
-    `--add-line <seconds>` then adds a line there, `--zoom <n>` zooms the timeline, `--settings general|styles` opens
+    `--add-line <seconds>` then adds a line there, `--zoom <n>` zooms the timeline,
+    `--crop <shape>` crops (with `--crop-edit`, leaves the editor open), `--settings general|styles` opens
     Settings on that tab (via `openSettings`; the old `showSettingsWindow:` action no
     longer works), and `--snapshot <png>` saves an image of the main window, or of
     Settings with `--settings`. The snapshot draws native controls poorly and
@@ -140,11 +155,12 @@ playful rather than slick.
 - `Sources/subya/`: a developer CLI. `subya transcribe <video> [--srt]` prints
   the captions; `subya burn <video> <out.mp4> [--captions file.srt]` exports, with
   `--style <name>` (built-in or the user's own), `--position`, `--caps`/`--no-caps`,
-  `--scale`, `--words`/`--lines` and `--small` (720p). Both take `--language <id>`. `subya styles` lists
+  `--scale`, `--words`/`--lines`, `--crop 1:1|9:16|4:5|16:9` (centred) and `--small`
+  (720p). Both take `--language <id>`. `subya styles` lists
   style names. Transcribe to SRT, edit it, then burn with `--captions` to script fixes.
 - `Tests/CaptionKitTests/`: unit tests for grouping, inserting lines, timeline moves and
   resizes, word-at-a-time timing, SRT, word splitting, styles (built-ins, saving, lookup, font fallback),
-  export naming and sizes, and the renderer (positions, colours, outline, box, caps,
+  export naming and sizes, crop presets, moves, resizes and pixel rects, and the renderer (positions, colours, outline, box, caps,
   every built-in, style changes) (`swift test`). They don't need a speech model.
 - `Makefile`: `make run`, `test`, `icons`, `dmg` and `release`. It builds a
   universal app with a Developer ID signature and hardened runtime, not sandboxed,

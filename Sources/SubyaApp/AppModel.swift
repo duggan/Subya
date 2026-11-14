@@ -36,6 +36,62 @@ final class AppModel {
     var errorMessage: String?
     var isPlaying = false
     var currentTime: Double = 0
+    // MARK: Crop
+
+    /// The crop applied to the preview and export.
+    var crop: Crop = .full
+    /// The shape the crop keeps while resizing; Free keeps none.
+    private(set) var cropAspect: Crop.Aspect = .free
+    /// While editing the crop, the preview shows the whole frame (without captions) with
+    /// the crop drawn over it.
+    private(set) var isCropping = false
+    /// The video's frame size before cropping.
+    private(set) var frameSize: CGSize = .zero
+    @ObservationIgnored private var cropBeforeEditing: Crop = .full
+
+    func startCropping() {
+        guard player != nil, !isCropping else { return }
+        player?.pause()
+        cropBeforeEditing = crop
+        isCropping = true
+        Task { await rebuildComposition() }
+    }
+
+    func finishCropping(keep: Bool = true) {
+        guard isCropping else { return }
+        if !keep { crop = cropBeforeEditing }
+        isCropping = false
+        Task { await rebuildComposition() }
+    }
+
+    func resetCrop() {
+        crop = .full
+        cropAspect = .free
+    }
+
+    /// Picking a shape snaps the crop to the largest centred one of that shape.
+    func setCropAspect(_ aspect: Crop.Aspect) {
+        cropAspect = aspect
+        if let ratio = aspect.ratio(for: frameSize) { crop = Crop.centered(ratio: ratio, in: frameSize) }
+    }
+
+    var cropRatio: CGFloat? { cropAspect.ratio(for: frameSize) }
+
+    /// Rebuilds the preview composition for the current crop (or the whole frame while
+    /// editing it) and redraws.
+    private func rebuildComposition() async {
+        guard let asset, let item = player?.currentItem else { return }
+        do {
+            let comp = try await CaptionRenderer.composition(for: asset, overlay: overlay,
+                                                             crop: isCropping ? .full : crop)
+            composition = comp
+            refreshOverlay()
+            item.videoComposition = comp
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// How far the timeline is zoomed in: 1 fits the whole video in view.
     private(set) var timelineZoom: Double = 1
     /// Up to about 400 points per second on a 600-point timeline, so short words have room.
@@ -131,6 +187,9 @@ final class AppModel {
         captions = []
         words = []
         timelineZoom = 1
+        crop = .full
+        cropAspect = .free
+        isCropping = false
         videoURL = url
         defer { isBusy = false }
         do {
@@ -139,6 +198,7 @@ final class AppModel {
             duration = try await asset.load(.duration).seconds
             let comp = try await CaptionRenderer.composition(for: asset, overlay: overlay)
             composition = comp
+            frameSize = comp.renderSize
             let item = AVPlayerItem(asset: asset)
             item.videoComposition = comp
             attach(AVPlayer(playerItem: item))
@@ -167,7 +227,7 @@ final class AppModel {
 
     func refreshOverlay() {
         guard let comp = composition else { return }
-        overlay.update(captions, size: comp.renderSize, style: style)
+        overlay.update(isCropping ? [] : captions, size: comp.renderSize, style: style)
         // Redraw the paused frame so edits show immediately. Reassigning the composition makes
         // the player re-render the current frame; seeking to the current time does not (it's
         // treated as a no-op, so the preview lagged until the next seek or play).
@@ -302,6 +362,7 @@ final class AppModel {
 
     func export(to out: URL) async {
         guard let asset else { return }
+        if isCropping { finishCropping() }
         isBusy = true
         status = "Exporting…"
         defer { isBusy = false }
@@ -310,7 +371,7 @@ final class AppModel {
         do {
             // Export draws with its own overlay, at the export's frame size.
             let exportOverlay = CaptionOverlay()
-            let composition = try await CaptionRenderer.composition(for: asset, overlay: exportOverlay,
+            let composition = try await CaptionRenderer.composition(for: asset, overlay: exportOverlay, crop: crop,
                                                                     maxLongSide: quality.maxLongSide)
             exportOverlay.update(captions, size: composition.renderSize, style: style)
             try await CaptionRenderer.export(asset: asset, composition: composition, to: out)

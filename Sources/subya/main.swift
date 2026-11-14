@@ -11,7 +11,7 @@ let usage = """
     usage: subya transcribe <video> [--srt] [--language <id>]
            subya burn <video> <output.mp4> [--captions <file.srt>] [--language <id>]
                       [--style <name>] [--position top|middle|bottom] [--caps|--no-caps]
-                      [--scale <n>] [--words|--lines] [--small]
+                      [--scale <n>] [--words|--lines] [--crop <aspect>] [--small]
            subya styles
 
     transcribe  Print the captions Subya would make (as SRT with --srt).
@@ -20,6 +20,7 @@ let usage = """
                 --style picks a style by name, including your own from the app's
                 Settings (default: Classic). --position, --caps, --scale and --words
                 (one word at a time) or --lines override it.
+                --crop cuts the largest centred 1:1, 9:16, 4:5 or 16:9 frame.
                 --small scales the video down to 720p for messaging.
     styles      List the style names --style accepts.
     --language  A locale like en-IE or fr-FR (default: this Mac's language).
@@ -74,6 +75,13 @@ do {
         let captionsPath = option("--captions")
         let language = option("--language")
         let small = flag("--small")
+        var cropAspect: Crop.Aspect?
+        if let value = option("--crop") {
+            guard let aspect = Crop.Aspect(name: value), aspect != .free else {
+                fail("--crop must be 1:1, 9:16, 4:5, 16:9 or original")
+            }
+            cropAspect = aspect
+        }
         var style = CaptionStyle.default
         if let name = option("--style") {
             guard let found = StyleLibrary.style(named: name, in: styles) else {
@@ -105,7 +113,13 @@ do {
 
         let asset = AVURLAsset(url: input)
         let overlay = CaptionOverlay()
-        let composition = try await CaptionRenderer.composition(for: asset, overlay: overlay,
+        var crop = Crop.full
+        if let cropAspect {
+            // The frame size, before cropping, from an uncropped composition.
+            let frame = try await CaptionRenderer.composition(for: asset, overlay: overlay).renderSize
+            if let ratio = cropAspect.ratio(for: frame) { crop = Crop.centered(ratio: ratio, in: frame) }
+        }
+        let composition = try await CaptionRenderer.composition(for: asset, overlay: overlay, crop: crop,
                                                                 maxLongSide: small ? 1280 : nil)
         overlay.update(captions, size: composition.renderSize, style: style)
         log("Exporting…")
