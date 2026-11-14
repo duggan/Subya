@@ -4,17 +4,24 @@ import Foundation
 
 // Developer CLI for CaptionKit. Same transcription and rendering as the app.
 
+/// Built-in styles plus the ones made in the app's Settings.
+let styles = StyleLibrary.all(from: UserDefaults(suiteName: StyleLibrary.appDomain) ?? .standard)
+
 let usage = """
-    usage: subya transcribe <video> [--srt]
-           subya burn <video> <output.mp4> [--captions <file.srt>] [--scale <n>]
-                      [--font <name>] [--position top|middle|bottom] [--caps]
+    usage: subya transcribe <video> [--srt] [--language <id>]
+           subya burn <video> <output.mp4> [--captions <file.srt>] [--language <id>]
+                      [--style <name>] [--position top|middle|bottom] [--caps|--no-caps]
+                      [--scale <n>] [--small]
+           subya styles
 
     transcribe  Print the captions Subya would make (as SRT with --srt).
     burn        Burn captions into a copy of the video. Uses --captions if given
                 (e.g. an edited `transcribe --srt`), otherwise transcribes first.
-                --scale sets the text size (1.0 is the app's default).
-                --font is one of: \(CaptionStyle.Font.allCases.map(\.rawValue).joined(separator: ", ")).
-                --caps sets all caps (on by default for meme; --no-caps turns it off).
+                --style picks a style by name, including your own from the app's
+                Settings (default: Classic). --position, --caps and --scale override it.
+                --small scales the video down to 720p for messaging.
+    styles      List the style names --style accepts.
+    --language  A locale like en-IE or fr-FR (default: this Mac's language).
     """
 
 func log(_ message: String) {
@@ -42,8 +49,9 @@ func flag(_ name: String) -> Bool {
     return true
 }
 
-func transcribe(_ url: URL) async throws -> [Caption] {
-    let words = try await Transcriber.words(for: url) { log($0) }
+func transcribe(_ url: URL, language: String?) async throws -> [Caption] {
+    let locale = language.map { Locale(identifier: $0) } ?? .current
+    let words = try await Transcriber.words(for: url, locale: locale) { log($0) }
     let duration = try await AVURLAsset(url: url).load(.duration).seconds
     return Chunker.captions(from: words, videoEnd: duration)
 }
@@ -56,21 +64,25 @@ do {
     switch args.first {
     case "transcribe":
         let srt = flag("--srt")
+        let language = option("--language")
         guard args.count == 2 else { fail(usage) }
-        let captions = try await transcribe(URL(fileURLWithPath: args[1]))
+        let captions = try await transcribe(URL(fileURLWithPath: args[1]), language: language)
         print(srt ? SRT.format(captions) : describe(captions))
 
     case "burn":
         let captionsPath = option("--captions")
-        var style = CaptionStyle()
+        let language = option("--language")
+        let small = flag("--small")
+        var style = CaptionStyle.default
+        if let name = option("--style") {
+            guard let found = StyleLibrary.style(named: name, in: styles) else {
+                fail("No style called “\(name)”. Try: \(styles.map(\.name).joined(separator: ", "))")
+            }
+            style = found
+        }
         if let value = option("--scale") {
             guard let n = Double(value) else { fail("--scale must be a number") }
             style.scale = n
-        }
-        if let value = option("--font") {
-            guard let font = CaptionStyle.Font(rawValue: value.lowercased()) else { fail(usage) }
-            style.font = font
-            style.allCaps = font.prefersAllCaps
         }
         if let value = option("--position") {
             guard let position = CaptionStyle.Position(rawValue: value.lowercased()) else { fail(usage) }
@@ -84,17 +96,23 @@ do {
         if let captionsPath {
             captions = try SRT.parse(String(contentsOfFile: captionsPath, encoding: .utf8))
         } else {
-            captions = try await transcribe(input)
+            captions = try await transcribe(input, language: language)
         }
         log(describe(captions))
 
         let asset = AVURLAsset(url: input)
         let overlay = CaptionOverlay()
-        let composition = try await CaptionRenderer.composition(for: asset, overlay: overlay)
+        let composition = try await CaptionRenderer.composition(for: asset, overlay: overlay,
+                                                                maxLongSide: small ? 1280 : nil)
         overlay.update(captions, size: composition.renderSize, style: style)
         log("Exporting…")
         try await CaptionRenderer.export(asset: asset, composition: composition, to: output)
         log("Wrote \(output.path)")
+
+    case "styles":
+        for style in styles {
+            print("\(style.name)\(style.isBuiltIn ? "" : "  (yours)")  –  \(style.fontDisplayName)")
+        }
 
     default:
         fail(usage)

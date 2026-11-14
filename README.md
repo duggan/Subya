@@ -30,12 +30,30 @@ needs macOS 26 or later.
    model for your language.
 3. Edit the captions on the right. You can change the text, the start and end times
    (in seconds), or delete a line. Click ▶ next to a line to play from there. The line
-   that's on screen is highlighted.
-4. Style the captions with the bar above the list: pick a font (Classic, Meme, Rounded,
-   Marker, Typewriter or Poster), put them at the top, middle or bottom, switch all caps
-   on or off, and drag the size slider. The preview updates as you go, and Subya
-   remembers your choices.
-5. Click **Export…** (⌘E).
+   that's on screen is highlighted. The timeline under the video shows every caption
+   as a block: drag a block to move it, or drag its edges to change when it starts and
+   ends, and the preview follows so you can line it up with the exact frame.
+4. To add text nobody says, like a caption over a silent reaction shot, move the
+   playhead there and press **+ Line** (⌘N). Videos with no sound at all work too:
+   just add your lines.
+5. Style the captions with the bar above the list: pick a style (Classic, Meme, Rounded,
+   Marker, Typewriter, Poster, Boxed or Highlight), put them at the top, middle or
+   bottom, switch all caps on or off, and drag the size slider. The preview updates as
+   you go, and Subya remembers your choices.
+6. Click **Export…** (⌘E).
+
+## Settings
+
+Open **Subya › Settings…** (⌘,), or click the brush next to the style picker.
+
+- **Styles:** make your own caption styles. Duplicate one, then pick any font on your
+  Mac, the text and outline colours, the outline thickness, a shadow, a box behind the
+  text (with see-through colours, if you like), where it sits, its size and caps. A
+  live preview shows each change.
+- **General:** the transcription language (for clips not in your Mac's language), how
+  captions are split (longest line, the pause that starts a new caption, how long
+  captions stay up), and export: where files go, the file name ending, and quality.
+  **Smaller for messaging** saves at 720p, which sends faster.
 
 ## Command line
 
@@ -46,9 +64,10 @@ swift run subya transcribe clip.mp4 --srt > clip.srt   # edit clip.srt if needed
 swift run subya burn clip.mp4 clip-captioned.mp4 --captions clip.srt
 ```
 
-Without `--captions`, `burn` transcribes first. Style options: `--font meme` (or classic,
-rounded, marker, typewriter, poster), `--position top|middle|bottom`, `--caps` or
-`--no-caps`, and `--scale 1.3` for text 30% bigger.
+Without `--captions`, `burn` transcribes first. `--style <name>` picks a style, including
+your own from Settings (`subya styles` lists them). `--position top|middle|bottom`,
+`--caps` or `--no-caps`, and `--scale 1.3` (text 30% bigger) adjust it. `--small` saves at
+720p, and `--language fr-FR` transcribes in another language.
 
 ## Development
 

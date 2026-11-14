@@ -33,12 +33,39 @@ final class CaptionRendererTests: XCTestCase {
         XCTAssertTrue(bottom.top == 0 && bottom.middle == 0 && bottom.bottom > 0, "bottom: \(bottom)")
     }
 
-    func testEveryFontRendersAndScaleGrowsText() throws {
-        for font in CaptionStyle.Font.allCases {
-            let small = try XCTUnwrap(CaptionRenderer.image(text: "Hi", size: size, style: CaptionStyle(font: font, scale: 0.8)))
-            let big = try XCTUnwrap(CaptionRenderer.image(text: "Hi", size: size, style: CaptionStyle(font: font, scale: 1.6)))
-            XCTAssertGreaterThan(opaqueRows(big, rows: 0..<562), opaqueRows(small, rows: 0..<562), font.rawValue)
+    func testEveryBuiltInRendersAndScaleGrowsText() throws {
+        for var style in CaptionStyle.builtIns {
+            style.scale = 0.8
+            let small = try XCTUnwrap(CaptionRenderer.image(text: "Hi", size: size, style: style))
+            style.scale = 1.6
+            let big = try XCTUnwrap(CaptionRenderer.image(text: "Hi", size: size, style: style))
+            XCTAssertGreaterThan(opaqueRows(big, rows: 0..<562), opaqueRows(small, rows: 0..<562), style.name)
         }
+    }
+
+    func testBoxFillsBehindTheText() throws {
+        let plain = CaptionStyle(outlineWidth: 0, shadow: false)
+        var boxed = plain
+        boxed.box = true
+        boxed.boxColor = RGBA(1, 0, 0)
+        let a = pixels(try XCTUnwrap(CaptionRenderer.image(text: "I I", size: size, style: plain)))
+        let b = pixels(try XCTUnwrap(CaptionRenderer.image(text: "I I", size: size, style: boxed)))
+        XCTAssertGreaterThan(count(b) { $0.r > 200 && $0.g < 40 && $0.b < 40 && $0.a > 200 }, 1000)  // red box
+        XCTAssertEqual(count(a) { $0.r > 200 && $0.g < 40 }, 0)
+    }
+
+    func testTextAndOutlineColours() throws {
+        let style = CaptionStyle(textColor: RGBA(0, 0, 1), outlineColor: RGBA(0, 1, 0), outlineWidth: 0.12, shadow: false)
+        let px = pixels(try XCTUnwrap(CaptionRenderer.image(text: "HELLO", size: size, style: style)))
+        XCTAssertGreaterThan(count(px) { $0.b > 200 && $0.r < 40 && $0.g < 40 }, 200, "blue fill")
+        XCTAssertGreaterThan(count(px) { $0.g > 200 && $0.r < 40 && $0.b < 40 }, 200, "green outline")
+    }
+
+    func testNoOutlineDrawsOnlyTheFill() throws {
+        let style = CaptionStyle(outlineWidth: 0, shadow: false)
+        let px = pixels(try XCTUnwrap(CaptionRenderer.image(text: "HELLO", size: size, style: style)))
+        XCTAssertGreaterThan(count(px) { $0.r > 240 && $0.g > 240 && $0.b > 240 && $0.a > 240 }, 200, "white fill")
+        XCTAssertEqual(count(px) { $0.a > 200 && $0.r < 30 && $0.g < 30 && $0.b < 30 }, 0, "no black outline")
     }
 
     func testOverlayRerendersWhenStyleChanges() throws {
@@ -64,8 +91,17 @@ final class CaptionRendererTests: XCTestCase {
     }
 
     func testStyleRoundTripsThroughJSON() throws {
-        let style = CaptionStyle(font: .meme, position: .top, scale: 1.3, allCaps: true)
+        let style = CaptionStyle(name: "Mine", fontName: "Impact", textColor: RGBA(1, 0.5, 0), box: true,
+                                 position: .top, scale: 1.3, allCaps: true)
         XCTAssertEqual(try JSONDecoder().decode(CaptionStyle.self, from: JSONEncoder().encode(style)), style)
+    }
+
+    private struct Pixel { let r, g, b, a: UInt8 }
+
+    private func count(_ data: [UInt8], where match: (Pixel) -> Bool) -> Int {
+        stride(from: 0, to: data.count, by: 4).filter {
+            match(Pixel(r: data[$0], g: data[$0 + 1], b: data[$0 + 2], a: data[$0 + 3]))
+        }.count
     }
 
     private func pixels(_ image: CGImage) -> [UInt8] {

@@ -57,8 +57,10 @@ public final class CaptionOverlay: @unchecked Sendable {
 }
 
 public enum CaptionRenderer {
-    /// White text with a thick black outline and a soft drop shadow, centred horizontally,
-    /// in the style's font and position. The image is the size of the video frame.
+    /// Draws `text` in the style: optional box behind it, optional outline (with round
+    /// joins, or sharp letters like Impact's M grow spikes), optional soft shadow, then the
+    /// fill. Centred horizontally at the style's position. The image is the size of the
+    /// video frame, transparent outside the caption.
     public static func image(text: String, size: CGSize, style: CaptionStyle) -> CGImage? {
         let width = Int(size.width), height = Int(size.height)
         guard width > 0, height > 0,
@@ -67,31 +69,31 @@ public enum CaptionRenderer {
                                   bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
 
         let text = style.allCaps ? text.uppercased(with: .current) : text
-        let fontSize = min(size.width, size.height) * 0.096 * style.scale * style.font.sizeFactor
-        let font = style.font.nsFont(size: fontSize)
+        let fontSize = min(size.width, size.height) * 0.096 * style.scale
         let para = NSMutableParagraphStyle()
         para.alignment = .center
         para.lineBreakMode = .byWordWrapping
-        let outlineWidth = fontSize * 0.093
+        let base: [NSAttributedString.Key: Any] = [.font: style.font(size: fontSize), .paragraphStyle: para]
 
         let shadow = NSShadow()
         shadow.shadowColor = NSColor.black.withAlphaComponent(0.8)
         shadow.shadowBlurRadius = fontSize * 0.12
         shadow.shadowOffset = NSSize(width: fontSize * 0.055, height: -fontSize * 0.075)
 
-        let base: [NSAttributedString.Key: Any] = [.font: font, .paragraphStyle: para]
-        // Negative stroke width = fill and stroke; the stroke is centred on the glyph edge, so double it.
-        let outline = NSAttributedString(string: text, attributes: base.merging([
-            .foregroundColor: NSColor.black, .strokeColor: NSColor.black,
-            .strokeWidth: -(outlineWidth * 2) / fontSize * 100, .shadow: shadow,
-        ]) { $1 })
-        let fill = NSAttributedString(string: text, attributes: base.merging([.foregroundColor: NSColor.white]) { $1 })
+        let hasOutline = style.outlineWidth > 0
+        var fillAttributes = base
+        fillAttributes[.foregroundColor] = style.textColor.nsColor
+        if style.shadow && !hasOutline { fillAttributes[.shadow] = shadow }
+        let fill = NSAttributedString(string: text, attributes: fillAttributes)
 
-        let maxWidth = size.width * 0.9
+        // Box padding, so a boxed caption keeps the same margin from the frame's edge.
+        let padX = style.box ? fontSize * 0.32 : 0
+        let padY = style.box ? fontSize * 0.14 : 0
+        let maxWidth = size.width * 0.9 - padX * 2
         let bounds = fill.boundingRect(with: CGSize(width: maxWidth, height: .greatestFiniteMagnitude),
                                        options: [.usesLineFragmentOrigin, .usesFontLeading])
         let textHeight = ceil(bounds.height)
-        let margin = size.height * 0.07
+        let margin = size.height * 0.07 + padY
         // Core Graphics origin is bottom-left.
         let y: CGFloat = switch style.position {
         case .bottom: margin
@@ -102,18 +104,53 @@ public enum CaptionRenderer {
 
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
-        // Round joins: with the default miter joins, sharp letters (Impact's M, A, Y)
-        // grow long spikes out of the outline.
-        ctx.setLineJoin(.round)
-        outline.draw(with: rect, options: [.usesLineFragmentOrigin, .usesFontLeading])
+        if style.box {
+            let textWidth = ceil(bounds.width)
+            let boxRect = CGRect(x: (size.width - textWidth) / 2 - padX, y: y - padY,
+                                 width: textWidth + padX * 2, height: textHeight + padY * 2)
+            ctx.setFillColor(style.boxColor.nsColor.cgColor)
+            ctx.addPath(CGPath(roundedRect: boxRect, cornerWidth: fontSize * 0.22, cornerHeight: fontSize * 0.22,
+                               transform: nil))
+            ctx.fillPath()
+        }
+        if hasOutline {
+            var outlineAttributes = base
+            outlineAttributes[.foregroundColor] = style.outlineColor.nsColor
+            outlineAttributes[.strokeColor] = style.outlineColor.nsColor
+            // Negative stroke width = fill and stroke, in percent of the font size. The stroke
+            // is centred on the glyph edge, so double it to get the visible width.
+            outlineAttributes[.strokeWidth] = -style.outlineWidth * 2 * 100
+            if style.shadow { outlineAttributes[.shadow] = shadow }
+            ctx.setLineJoin(.round)
+            NSAttributedString(string: text, attributes: outlineAttributes)
+                .draw(with: rect, options: [.usesLineFragmentOrigin, .usesFontLeading])
+        }
         fill.draw(with: rect, options: [.usesLineFragmentOrigin, .usesFontLeading])
         NSGraphicsContext.restoreGraphicsState()
         return ctx.makeImage()
     }
 
-    public static func composition(for asset: AVAsset, overlay: CaptionOverlay) async throws -> AVVideoComposition {
+    /// The composition that draws captions over the video, for both the preview and export.
+    /// With `maxLongSide`, frames are scaled down so the longer side is at most that many
+    /// pixels (the overlay must then be updated with the composition's `renderSize`).
+    public static func composition(for asset: AVAsset, overlay: CaptionOverlay,
+                                   maxLongSide: CGFloat? = nil) async throws -> AVVideoComposition {
+        let natural = try await composition(for: asset, overlay: overlay, scale: 1, size: nil)
+        let target = ExportNaming.exportSize(for: natural.renderSize, maxLongSide: maxLongSide)
+        guard target != natural.renderSize else { return natural }
+        let scale = target.width / natural.renderSize.width
+        let scaled = try await composition(for: asset, overlay: overlay, scale: scale, size: target)
+        return (LegacyComposition.self as RenderSizing.Type).withRenderSize(scaled, target) ?? natural
+    }
+
+    private static func composition(for asset: AVAsset, overlay: CaptionOverlay, scale: CGFloat,
+                                     size: CGSize?) async throws -> AVVideoComposition {
         try await AVVideoComposition.videoComposition(with: asset, applyingCIFiltersWithHandler: { request in
             var image = request.sourceImage
+            if let size, scale != 1 {
+                image = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+                    .cropped(to: CGRect(origin: .zero, size: size))
+            }
             if let caption = overlay.image(at: request.compositionTime.seconds) {
                 image = caption.composited(over: image)
             }
@@ -129,5 +166,22 @@ public enum CaptionRenderer {
         session.shouldOptimizeForNetworkUse = true
         try? FileManager.default.removeItem(at: url)
         try await session.export(to: url, as: .mp4)
+    }
+}
+
+/// AVVideoComposition.Configuration (macOS 26) can't express a Core Image filter handler,
+/// so changing a filtering composition's render size still needs the deprecated mutable
+/// copy. Calling it through a protocol keeps the deprecation warning out of the build
+/// without silencing any others.
+private protocol RenderSizing {
+    static func withRenderSize(_ composition: AVVideoComposition, _ size: CGSize) -> AVVideoComposition?
+}
+
+private enum LegacyComposition: RenderSizing {
+    @available(macOS, deprecated: 26.0)
+    static func withRenderSize(_ composition: AVVideoComposition, _ size: CGSize) -> AVVideoComposition? {
+        guard let mutable = composition.mutableCopy() as? AVMutableVideoComposition else { return nil }
+        mutable.renderSize = size
+        return mutable
     }
 }

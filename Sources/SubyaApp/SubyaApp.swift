@@ -14,11 +14,25 @@ struct SubyaApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("Open Video…") { model.chooseFile() }.keyboardShortcut("o")
             }
+            CommandMenu("Captions") {
+                Button("Add Line at Playhead") { model.addCaption() }
+                    .keyboardShortcut("n")
+                    .disabled(model.player == nil || model.isBusy)
+                Button("Re-split Captions…") { model.resplit() }
+                    .disabled(model.words.isEmpty || model.isBusy)
+            }
+        }
+
+        Settings {
+            SettingsView(model: model)
         }
     }
 
     /// Developer options:
     ///   --open <video>       load a video at launch (the same path as a drop)
+    ///   --add-line <seconds> after loading, add a caption line at that time (like + Line)
+    ///   --settings <tab>     open Settings on "general" or "styles"; with --snapshot, the
+    ///                        image is of the Settings window (works without --open)
     ///   --snapshot <png>     after loading, save an image of the window (for checking layout
     ///                        without screen-recording permission; video frames come out black)
     @MainActor
@@ -28,18 +42,43 @@ struct SubyaApp: App {
             guard let i = args.firstIndex(of: flag), args.count > i + 1 else { return nil }
             return args[i + 1]
         }
-        if let path = value(after: "--open") {
-            model.open(URL(fileURLWithPath: path))
+        if args.contains("--settings") {
+            // ContentView opens Settings (openSettings is only available in views).
+            try? await Task.sleep(for: .seconds(2.5))
+            if let path = value(after: "--snapshot"),
+               let window = NSApp.windows.first(where: { $0.isVisible && $0.title != "Subya" }) {
+                Self.snapshot(window, to: path)
+            }
+            return
+        }
+        guard let path = value(after: "--open") else { return }
+        model.open(URL(fileURLWithPath: path))
+
+        // Wait for loading and transcription to finish.
+        try? await Task.sleep(for: .milliseconds(300))
+        for _ in 0..<600 where model.isBusy || model.player == nil {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        if let seconds = value(after: "--add-line").flatMap(Double.init) {
+            model.seek(to: seconds)
+            try? await Task.sleep(for: .milliseconds(300))
+            model.addCaption()
+        } else {
+            model.seek(to: 4.5)
         }
         if let path = value(after: "--snapshot") {
-            try? await Task.sleep(for: .seconds(8))
-            model.seek(to: 4.5)
             try? await Task.sleep(for: .seconds(1))
-            if let view = NSApp.windows.first(where: { $0.isVisible })?.contentView,
-               let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
-                view.cacheDisplay(in: view.bounds, to: rep)
-                try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
+            if let window = NSApp.windows.first(where: { $0.isVisible }) {
+                Self.snapshot(window, to: path)
             }
         }
+    }
+
+    @MainActor
+    private static func snapshot(_ window: NSWindow, to path: String) {
+        guard let view = window.contentView,
+              let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+        view.cacheDisplay(in: view.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
     }
 }
