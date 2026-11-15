@@ -1,100 +1,155 @@
 <p align="center">
-  <img src="docs/icon.png" width="140" alt="">
+  <img src="docs/assets/banner.png" alt="Subya: big, loud captions for your memes and reaction clips" width="760">
 </p>
 
-<h1 align="center">Subya</h1>
+<p align="center">
+  <b>Big, loud, readable captions for your memes and reaction clips. Made on your Mac.</b>
+</p>
 
-<p align="center">Big, readable captions for your memes and reaction clips, made on your Mac.</p>
+<p align="center">
+  <a href="https://github.com/duggan/Subya/releases/latest/download/Subya.dmg"><b>⬇ Download Subya for Mac</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://duggan.github.io/Subya/">Website</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/duggan/Subya/releases">All releases</a>
+</p>
 
-Subya ("sub ya") is a small macOS app that burns captions into a video clip, so the line
+<p align="center">
+  Free and open source · macOS 26 Tahoe or later
+</p>
+
+---
+
+Subya ("sub ya", as in *subtitle you*) burns captions right into a video, so the line
 lands even when your friends watch with the sound off, in WhatsApp, Messages or the
-group chat.
+group chat. Messaging apps drop or hide subtitle tracks; burned-in text always shows.
 
-Drop a video on the window. Subya transcribes it on your Mac and splits the speech
-into short caption lines. Fix any wrong words or timings in the list, watch the preview,
-then export. You get a new `<name>-captioned.mp4` next to the original, with bold white
-captions outlined in black near the bottom of the frame.
+Drop a clip on the window. Subya transcribes it **on your Mac**, splits the speech into
+punchy caption lines, and shows you exactly what you'll get. Fix a word, pick a look,
+export. That's it.
 
-Nothing is uploaded. Transcription uses the speech recognition built into macOS, and there
-are no permissions to grant.
+<!-- Screenshot: replace with a real one before release, e.g.
+<p align="center"><img src="docs/assets/screenshot.png" alt="Subya's window: video preview with captions, timeline, and the caption list" width="900"></p>
+-->
+
+## What it does
+
+- **Transcribes on your Mac.** Apple's on-device speech recognition, no uploads, no
+  account, and no permissions to grant.
+- **What you see is what you export.** The preview *is* the export, updated as you type.
+- **Nine looks, plus your own.** Classic, Meme, Rounded, Marker, Typewriter, Poster,
+  Boxed, Highlight and One Word. Make your own with any font on your Mac, colours,
+  outline, shadow and a box behind the text.
+- **One word at a time.** The punchy reaction-clip look, with each word timed to the
+  speech and a word-by-word timeline to nudge them.
+- **Put the text anywhere.** Drag captions up and down on the video; they snap to top,
+  middle and bottom.
+- **A real timeline.** A Photos-style filmstrip with every caption on it: drag to move,
+  drag edges to retime, zoom in for the fiddly bits.
+- **Say what nobody said.** Add a line at the playhead (⌘N) for silent reaction shots.
+  Videos without sound work too.
+- **Trim and crop.** Keep just the bit you want (big videos are fine: only the trimmed
+  part is transcribed), and crop to 9:16, 1:1, 4:5 or 16:9.
+- **Ready for the chat.** Exports an MP4 next to the original, optionally at 720p so it
+  sends faster.
 
 ## Install
 
-Download `Subya.dmg` from the latest release and drag Subya to Applications. It
-needs macOS 26 or later.
+[Download `Subya.dmg`](https://github.com/duggan/Subya/releases/latest/download/Subya.dmg),
+open it, and drag Subya to Applications. It's signed and notarized, and needs
+macOS 26 (Tahoe) or later.
 
-## Use
+## How to use it
 
-1. Drag a video onto the window, or choose **File › Open Video…** (⌘O).
-2. Wait a moment while it's transcribed. The first time, macOS may download its speech
-   model for your language.
-3. Edit the captions on the right. You can change the text, the start and end times
-   (in seconds), or delete a line. Click ▶ next to a line to play from there. The line
-   that's on screen is highlighted. The timeline under the video works like the trim
-   bar in Photos: a filmstrip of the video with every caption as a block on it. Click a
-   caption to select it (yellow, with grips), drag it to move it, or drag its edges to
-   change when it starts and ends, and the preview follows so you can line it up with
-   the exact frame. Click or drag the filmstrip to scrub.
-4. To add text nobody says, like a caption over a silent reaction shot, move the
-   playhead there and press **+ Line** (⌘N). Videos with no sound at all work too:
-   just add your lines.
-5. Style the captions with the bar above the list: pick a style (Classic, Meme, Rounded,
-   Marker, Typewriter, Poster, Boxed or Highlight), put them at the top, middle or
-   bottom, switch all caps on or off, and drag the size slider. To place them anywhere
-   in between, drag the captions up or down on the video, or use the handle at its
-   right edge; they snap to the top, middle and bottom on the way. Turn on **One word**
-   to show each word alone as it's spoken, a punchy look for reaction clips (the
-   **One Word** style does this big and centred). In this mode the timeline splits each
-   caption into its words: drag the line between two words to change when the second
-   one appears. Zoom the timeline in to give words room: use the magnifiers or slider
-   by the time, pinch on the timeline, or ⌘+ and ⌘− (⌘0 fits the whole video). When
-   zoomed, scroll sideways; the timeline follows the playhead as it plays. The preview updates as
-   you go, and Subya remembers your choices.
-6. To crop, click **Crop** in the top-left corner of the video panel. Pick a shape (1:1, 9:16 for Stories, 4:5, 16:9,
-   the original, or free), drag the frame to move it and its corners to resize it, then
-   click **Done**. Captions are placed inside the cropped frame.
-7. To keep only part of the video, click **Trim** next to Crop (or ⌘T) and drag the
-   yellow ends of the timeline, as in Photos, then click **Done**. The timeline, the
-   times and playback then cover just that part, and only it is exported. You can trim
-   while a long video is still being transcribed: Subya then transcribes only the
-   trimmed part, which is much quicker. If you later widen the trim, the new parts are
-   transcribed and their captions added.
-8. Click **Export…** (⌘E).
+1. **Drop** a video on the window, or choose **File › Open Video…** (⌘O). The first
+   time, macOS may download its speech model for your language.
+2. **Fix** anything it misheard in the list on the right. Click ▶ to play from a line;
+   the line on screen is highlighted.
+3. **Style** it from the bar above the list: a style, top/middle/bottom, all caps, the
+   size, and **One word** mode. Or grab the caption on the video and drag it where you
+   want it.
+4. **Export…** (⌘E). You get `<name>-captioned.mp4`, and the original is never touched.
 
-## Settings
+### The timeline
 
-Open **Subya › Settings…** (⌘,), or click the brush next to the style picker.
+The strip under the video works like the trim bar in Photos. Click a caption to select
+it (yellow, with grips), drag it to move it, or drag its edges to change when it starts
+and ends; the preview follows so you can land it on the exact frame. Click or drag the
+filmstrip to scrub. Zoom with the magnifiers, a pinch, or ⌘+ and ⌘− (⌘0 fits). In One
+word mode each caption splits into its words: drag the line between two words to change
+when the second one appears.
 
-- **Styles:** make your own caption styles. Duplicate one, then pick any font on your
-  Mac, the text and outline colours, the outline thickness, a shadow, a box behind the
-  text (with see-through colours, if you like), where it sits, its size and caps, and
-  whether it shows whole lines or one word at a time. A
-  live preview shows each change.
+### Trim and crop
+
+- **Trim** (top left of the video, or ⌘T): drag the yellow ends of the timeline to keep
+  part of the video, then **Done**. Everything then covers just that part, and only it
+  is exported. You can trim while a long video is still transcribing: Subya switches to
+  transcribing only the trimmed part, which is much quicker. Widen the trim later and
+  only the new parts are transcribed.
+- **Crop**: pick a shape (1:1, 9:16 for Stories, 4:5, 16:9, the original or free),
+  drag the frame and its corners, then **Done**. Captions are laid out in the cropped
+  frame.
+
+### Settings
+
+**Subya › Settings…** (⌘,), or the brush next to the style picker.
+
+- **Styles:** duplicate a built-in style and make it yours: font, text and outline
+  colours, outline thickness, shadow, a box behind the text, position, size, caps, and
+  whole lines or one word at a time, with a live preview.
 - **General:** the transcription language (for clips not in your Mac's language), how
-  captions are split (longest line, the pause that starts a new caption, how long
-  captions stay up), and export: where files go, the file name ending, and quality.
-  **Smaller for messaging** saves at 720p, which sends faster.
+  captions are split (longest line, the pause that starts a new caption, how long they
+  linger), and export: where files go, the file name ending, and **Smaller for
+  messaging** (720p).
+
+## Privacy
+
+Everything stays on your Mac. Transcription runs on-device with Apple's speech
+recognition (the model for a language is downloaded by macOS the first time it's
+used). Subya makes no network requests of its own, collects nothing, and asks for no
+permissions.
 
 ## Command line
 
-The `subya` tool does the same from Terminal:
+There's a `subya` command-line tool too, built from source:
 
 ```sh
-swift run subya transcribe clip.mp4 --srt > clip.srt   # edit clip.srt if needed
-swift run subya burn clip.mp4 clip-captioned.mp4 --captions clip.srt
+swift run subya transcribe clip.mp4 --srt > clip.srt     # edit clip.srt if you like
+swift run subya burn clip.mp4 out.mp4 --captions clip.srt --style Meme
+swift run subya burn clip.mp4 out.mp4 --trim 1:05-1:20 --crop 9:16 --words --small
 ```
 
-Without `--captions`, `burn` transcribes first. `--style <name>` picks a style, including
-your own from Settings (`subya styles` lists them). `--position top|middle|bottom` (or a number from 0, top, to 1, bottom),
-`--caps` or `--no-caps`, `--scale 1.3` (text 30% bigger) and `--words` (one word at a
-time) adjust it. `--crop 9:16` (or 1:1, 4:5, 16:9) crops to the centre of the frame. `--trim 1:05-1:20` keeps only that
-part (seconds, m:ss or h:mm:ss; `30-` means from 30 s to the end), and transcribes only
-it. `--small` saves at
-720p, and `--language fr-FR` transcribes in another language.
+Without `--captions`, `burn` transcribes first.
+
+| Option | Does |
+| --- | --- |
+| `--style <name>` | A built-in style or one of yours from Settings (`subya styles` lists them) |
+| `--position top\|middle\|bottom\|0…1` | Where the captions sit (0 is the top position, 1 the bottom) |
+| `--caps`, `--no-caps` | All caps on or off |
+| `--scale 1.3` | Text 30% bigger |
+| `--words`, `--lines` | One word at a time, or whole lines |
+| `--trim 1:05-1:20` | Keep only that part (seconds, m:ss or h:mm:ss; `30-` means from 30 s to the end); only it is transcribed |
+| `--crop 9:16` | Crop to the centre: 1:1, 9:16, 4:5 or 16:9 |
+| `--small` | Save at 720p |
+| `--language fr-FR` | Transcribe in another language |
+
+## FAQ
+
+**Why burn the captions in?** Messaging apps strip or hide subtitle tracks, and the point
+of a reaction clip is that the line lands, sound or no sound.
+
+**Which languages?** Whatever Apple's on-device transcription supports on your Mac.
+Pick one in Settings › General if the clip isn't in your Mac's language.
+
+**Intel or Apple silicon?** It's a universal app. Transcription relies on what macOS
+supports on your Mac; if it isn't available, you can still add lines by hand.
+
+**Why macOS 26?** Subya uses `SpeechAnalyzer`, the on-device transcription that arrived
+in macOS 26. It's fast and needs no speech-recognition permission.
 
 ## Development
 
-You need Xcode 26 or later and a Developer ID signing identity. `make dmg` also needs
+You need Xcode 26 or later. Signing needs a Developer ID identity; `make dmg` also needs
 `create-dmg`, and `make icons` needs Inkscape.
 
 ```sh
@@ -104,6 +159,9 @@ make release   # notarized DMG (run `make notary-setup` once first)
 make help      # everything else
 ```
 
-## License
+The website lives in [`docs/`](docs/) and is served by GitHub Pages. Releases are built
+by GitHub Actions; see [docs/RELEASING.md](docs/RELEASING.md).
+
+## Licence
 
 GPL-3.0. See [LICENSE](LICENSE).

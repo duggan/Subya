@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subya: big captions for your memes, made on your Mac</title>
+<meta name="description" content="Subya is a free, open-source Mac app that burns big, readable captions into your memes and reaction clips. Transcribed on your Mac: no uploads, no account, no permissions.">
+<link rel="canonical" href="https://duggan.github.io/Subya/">
+<meta name="theme-color" content="#FFB400">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Subya">
+<meta property="og:title" content="Subya: big captions for your memes">
+<meta property="og:description" content="A free, open-source Mac app that burns big, readable captions into your clips. Everything stays on your Mac.">
+<meta property="og:url" content="https://duggan.github.io/Subya/">
+<meta property="og:image" content="https://duggan.github.io/Subya/assets/banner.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="A smug pink blob giving side-eye on a yellow comic sunburst, next to the word SUBYA and the line: big captions for your memes.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Subya: big captions for your memes">
+<meta name="twitter:description" content="A free, open-source Mac app that burns big, readable captions into your clips. Everything stays on your Mac.">
+<meta name="twitter:image" content="https://duggan.github.io/Subya/assets/banner.png">
+<meta name="twitter:image:alt" content="A smug pink blob giving side-eye on a yellow comic sunburst, next to the word SUBYA and the line: big captions for your memes.">
+<style>
+/* ---------- basics ---------- */
+:root {
+  --ink: #1F2329;
+  --paper: #FFF6DF;
+  --sun: #FFB400;
+  --sun-light: #FFD84A;
+  --pink: #FF5D8F;
+  --pink-deep: #E23E77;
+  --mint: #6EE7C8;
+  --sky: #7CCBFF;
+  --display: Impact, Haettenschweiler, "Arial Narrow Bold", "Helvetica Neue Condensed Black", "Roboto Condensed", sans-serif;
+  --body: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* a ring of shadows: a round outline that never grows spikes, whatever the font */
+  --o: .06em;
+  --ring:
+    var(--o) 0 0 var(--ink), calc(var(--o) * -1) 0 0 var(--ink),
+    0 var(--o) 0 var(--ink), 0 calc(var(--o) * -1) 0 var(--ink),
+    calc(var(--o) * .71) calc(var(--o) * .71) 0 var(--ink), calc(var(--o) * -.71) calc(var(--o) * .71) 0 var(--ink),
+    calc(var(--o) * .71) calc(var(--o) * -.71) 0 var(--ink), calc(var(--o) * -.71) calc(var(--o) * -.71) 0 var(--ink),
+    calc(var(--o) * .92) calc(var(--o) * .38) 0 var(--ink), calc(var(--o) * -.92) calc(var(--o) * .38) 0 var(--ink),
+    calc(var(--o) * .92) calc(var(--o) * -.38) 0 var(--ink), calc(var(--o) * -.92) calc(var(--o) * -.38) 0 var(--ink),
+    calc(var(--o) * .38) calc(var(--o) * .92) 0 var(--ink), calc(var(--o) * -.38) calc(var(--o) * .92) 0 var(--ink),
+    calc(var(--o) * .38) calc(var(--o) * -.92) 0 var(--ink), calc(var(--o) * -.38) calc(var(--o) * -.92) 0 var(--ink),
+    0 calc(var(--o) * 2) 0 var(--ink), calc(var(--o) * .8) calc(var(--o) * 1.8) 0 var(--ink), calc(var(--o) * -.8) calc(var(--o) * 1.8) 0 var(--ink);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { overflow-x: clip; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; font: 500 1.0625rem/1.55 var(--body); color: var(--ink); background: var(--paper); overflow-x: hidden; }
+img, svg { max-width: 100%; display: block; }
+a { color: inherit; text-decoration-thickness: .12em; text-underline-offset: .18em; }
+h1, h2, h3, p { margin: 0; }
+code, kbd { font-family: var(--mono); font-size: .9em; }
+p code { white-space: nowrap; }
+:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; box-shadow: 0 0 0 3px #fff; border-radius: 6px; }
+.wrap { width: min(1200px, 100% - 2.5rem); margin-inline: auto; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip { position: absolute; left: 1rem; top: -4rem; z-index: 10; background: #fff; padding: .5rem 1rem; border: 3px solid var(--ink); border-radius: 10px; font-weight: 800; }
+.skip:focus { top: 1rem; }
+
+/* ---------- shared pieces ---------- */
+.display { font-family: var(--display); font-weight: 400; text-transform: uppercase; letter-spacing: .01em; line-height: .98; }
+.outlined { color: #fff; text-shadow: var(--ring); }
+.sticker { background: #fff; border: 3px solid var(--ink); border-radius: 20px; box-shadow: 6px 6px 0 var(--ink); }
+.btn { display: inline-flex; align-items: center; gap: .6em; font-family: var(--display); font-size: 1.45rem; text-transform: uppercase; letter-spacing: .03em; text-decoration: none; color: var(--ink); background: var(--pink); padding: .62em 1.1em .56em; border: 3px solid var(--ink); border-radius: 16px; box-shadow: 6px 6px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
+.btn:hover { transform: translate(-2px, -2px) rotate(-1deg); box-shadow: 8px 8px 0 var(--ink); }
+.btn:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 var(--ink); }
+.btn svg { width: 1.1em; height: 1.1em; flex: none; }
+.btn.ghost { background: #fff; font-size: 1.15rem; }
+.btn.small { font-size: 1.05rem; box-shadow: 4px 4px 0 var(--ink); border-radius: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; list-style: none; padding: 0; margin: 0; }
+.chips li { background: #fff; border: 2.5px solid var(--ink); border-radius: 999px; padding: .2em .85em; font-weight: 700; font-size: .92rem; }
+section { padding: clamp(3.5rem, 8vw, 6rem) 0; border-top: 4px solid var(--ink); position: relative; }
+.section-head { max-width: 46rem; margin-bottom: 2.5rem; }
+.section-head h2 { font-size: clamp(2.4rem, 6vw, 4rem); margin-bottom: .9rem; }
+.section-head p { font-size: 1.15rem; }
+.dots { background-image: radial-gradient(circle, rgba(31, 35, 41, .13) 2.5px, transparent 3px); background-size: 16px 16px; }
+
+/* ---------- caption looks (SVG text, round joins like the app) ---------- */
+.cap { text-anchor: middle; fill: #fff; stroke: #000; stroke-linejoin: round; stroke-linecap: round; paint-order: stroke fill; filter: drop-shadow(0 1.5px 1.5px rgba(0, 0, 0, .5)); }
+.c-classic { font: 700 22px "Helvetica Neue", Helvetica, Arial, sans-serif; stroke-width: 4.2px; }
+.c-meme { font: 400 28px var(--display); stroke-width: 5px; }
+.c-rounded { font: 900 21px ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif; stroke-width: 4px; }
+.c-marker { font: 700 25px "Marker Felt", "MarkerFelt-Wide", "Comic Sans MS", "Chalkboard SE", cursive; stroke-width: 4.4px; }
+.c-type { font: 700 20px "American Typewriter", "Courier New", Courier, monospace; stroke-width: 4px; }
+.c-poster { font: 800 27px "Futura-CondensedExtraBold", "Futura Condensed ExtraBold", "Futura Condensed", Impact, "Arial Narrow Bold", sans-serif; stroke-width: 4.6px; }
+.c-oneword { font: 900 50px ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif; stroke-width: 10px; }
+.c-hero { font: 400 40px var(--display); stroke-width: 7.5px; }
+.pop { animation: pop .22s cubic-bezier(.3, 1.6, .5, 1); transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { transform: scale(.55); } to { transform: scale(1); } }
+/* HTML captions on the little demos */
+.hcap { font-family: var(--display); text-transform: uppercase; color: #fff; text-align: center; line-height: 1; --o: .085em; text-shadow: var(--ring); }
+.demo { position: relative; aspect-ratio: 16 / 9; container-type: inline-size; overflow: hidden; border: 3px solid var(--ink); border-radius: 14px; background: #2B2F36; }
+.demo > svg.scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* ---------- header + hero ---------- */
+.hero { background: var(--sun); position: relative; overflow: hidden; border-top: 0; padding: 5.4rem 0 clamp(3rem, 7vw, 5.5rem); }
+.hero::before { content: ""; position: absolute; left: 50%; top: 45%; width: 260vmax; height: 260vmax; margin: -130vmax 0 0 -130vmax; background: repeating-conic-gradient(var(--sun-light) 0 8deg, transparent 8deg 16deg); animation: spin 180s linear infinite; }
+.hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 85% 0, rgba(226, 110, 0, .5) 2.6px, transparent 3.2px) 0 0 / 16px 16px; -webkit-mask-image: radial-gradient(circle at 100% 0, #000, transparent 45%); mask-image: radial-gradient(circle at 100% 0, #000, transparent 45%); pointer-events: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hero > * { position: relative; z-index: 1; }
+header.top { display: flex; align-items: center; gap: 1.25rem; padding: 1.1rem 0; position: absolute; left: 0; right: 0; top: 0; z-index: 3; }
+.brand { display: flex; align-items: center; gap: .6rem; text-decoration: none; margin-right: auto; }
+.brand img.mark { width: 54px; height: 54px; }
+.brand img.word { height: 44px; width: auto; transform: rotate(-3deg); }
+header.top nav { display: flex; gap: 1.4rem; font-weight: 800; }
+header.top nav a { text-decoration: none; }
+header.top nav a:hover { text-decoration: underline; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: clamp(2rem, 3.5vw, 3rem); align-items: center; padding-top: clamp(1.5rem, 4vw, 3rem); }
+.hero h1 { font-size: clamp(3.3rem, 6.3vw, 5.5rem); transform: rotate(-2deg); transform-origin: left center; margin-bottom: 1.6rem; }
+.hero h1 em { font-style: normal; color: var(--pink); }
+.hero .lede { font-size: clamp(1.1rem, 1.6vw, 1.3rem); font-weight: 600; max-width: 33rem; margin-bottom: 1.8rem; }
+.cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.1rem; margin-bottom: 1.4rem; }
+
+/* ---------- the pretend app window ---------- */
+.shot { margin: 0; }
+.shot img.real { border: 3px solid var(--ink); border-radius: 16px; box-shadow: 10px 10px 0 var(--ink); }
+.win { background: #24272D; color: #E8EAEE; border: 3px solid var(--ink); border-radius: 16px; box-shadow: 10px 10px 0 var(--ink); overflow: hidden; transform: rotate(1.2deg); font: 600 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.win-bar { display: flex; align-items: center; gap: 7px; padding: 9px 12px; background: #32363D; border-bottom: 2px solid var(--ink); }
+.win-bar i { width: 12px; height: 12px; border-radius: 50%; background: #FF5D8F; border: 1.5px solid var(--ink); }
+.win-bar i:nth-child(2) { background: #FFD84A; }
+.win-bar i:nth-child(3) { background: #6EE7C8; }
+.win-bar span { margin: 0 auto; padding-right: 50px; opacity: .8; }
+.win-body { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+.win-left { padding: 12px; border-right: 2px solid var(--ink); min-width: 0; }
+.preview { position: relative; border-radius: 8px; overflow: hidden; border: 2px solid var(--ink); background: #000; }
+.preview svg { width: 100%; height: auto; }
+.face { opacity: 0; }
+.face.on { opacity: 1; }
+.transport { display: flex; align-items: center; gap: 8px; padding: 9px 2px 7px; font-variant-numeric: tabular-nums; }
+.transport .play { width: 22px; height: 22px; border-radius: 50%; background: #E8EAEE; display: grid; place-items: center; }
+.transport .play::before { content: ""; border-left: 8px solid #24272D; border-block: 5px solid transparent; margin-left: 2px; }
+.transport .pill { margin-left: auto; padding: 3px 9px; border-radius: 6px; background: #3D424B; }
+.transport .pill + .pill { margin-left: 0; }
+.track { position: relative; height: 54px; border-radius: 8px; overflow: hidden; background: linear-gradient(90deg, transparent calc(100% - 2px), rgba(0, 0, 0, .55) 0) 0 0 / 10% 100%, radial-gradient(circle at 50% 100%, #FF5D8F 0 42%, transparent 44%) 0 0 / 10% 100%, #7CCBFF; }
+.blk { position: absolute; top: 5px; bottom: 5px; border-radius: 6px; background: rgba(255, 255, 255, .5); border: 1.5px solid rgba(255, 255, 255, .9); color: #14171B; font-size: 10px; font-weight: 800; padding: 0 6px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; }
+.blk.on { background: rgba(255, 216, 74, .78); border: 2.5px solid #FFD400; }
+.playhead { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; pointer-events: none; transform: translateX(26%); }
+.playhead::before { content: ""; position: absolute; left: -1.5px; top: 0; bottom: 0; width: 3px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .5); }
+.win-right { display: flex; flex-direction: column; min-width: 0; }
+.stylebar { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 10px 10px; border-bottom: 2px solid var(--ink); }
+.stylebar span { padding: 4px 9px; border-radius: 6px; background: #3D424B; white-space: nowrap; }
+.stylebar span.lit { background: var(--pink); color: #14171B; }
+.rows { list-style: none; margin: 0; padding: 8px; display: grid; gap: 6px; }
+.rows li { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; padding: 8px 9px; border-radius: 8px; background: #2E3239; border: 2px solid transparent; }
+.rows li.on { border-color: #FFD400; background: #3A3A2C; }
+.rows time { font-variant-numeric: tabular-nums; opacity: .65; }
+.rows b { font-weight: 600; font-size: 12.5px; }
+.rows u { text-decoration: underline wavy var(--pink); text-underline-offset: 3px; }
+.exportbar { margin-top: auto; padding: 10px; border-top: 2px solid var(--ink); display: flex; justify-content: flex-end; }
+.exportbar span { background: #FFD84A; color: #14171B; font-weight: 800; padding: 5px 12px; border-radius: 7px; }
+.shot figcaption { margin-top: 1.4rem; font-size: .88rem; font-weight: 700; text-align: center; }
+
+/* ---------- marquee ---------- */
+.band { background: var(--ink); color: #fff; padding: .75rem 0; overflow: hidden; border-block: 4px solid var(--ink); transform: rotate(-1.2deg) scale(1.03); margin: -1.2rem 0; position: relative; z-index: 2; }
+.band-track { display: flex; width: max-content; animation: slide 40s linear infinite; }
+.band-track span { font-family: var(--display); font-size: 1.5rem; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; padding-right: 1.2rem; }
+.band-track b { color: var(--sun-light); font-weight: 400; padding-right: 1.2rem; }
+.band-track b:nth-of-type(even) { color: var(--pink); }
+@keyframes slide { to { transform: translateX(-50%); } }
+
+/* ---------- how it works ---------- */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; counter-reset: step; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: step; position: relative; padding: 1.6rem 1.4rem 1.5rem; }
+.steps li:nth-child(1) { transform: rotate(-1.2deg); }
+.steps li:nth-child(2) { transform: rotate(.8deg); background: var(--sun-light); }
+.steps li:nth-child(3) { transform: rotate(-.6deg); }
+.steps li::before { content: counter(step); position: absolute; top: -1.3rem; left: -1rem; width: 3.4rem; height: 3.4rem; display: grid; place-items: center; font: 400 2rem/1 var(--display); background: var(--pink); border: 3px solid var(--ink); border-radius: 50%; box-shadow: 3px 3px 0 var(--ink); transform: rotate(-8deg); }
+.steps svg { width: 100%; height: auto; margin-bottom: 1rem; }
+.steps h3 { font: 400 2.2rem/1 var(--display); text-transform: uppercase; margin-bottom: .5rem; }
+
+/* ---------- features ---------- */
+.features { background: var(--paper); }
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.8rem; }
+.card { padding: 1rem 1rem 1.3rem; transition: transform .15s; }
+.card:hover { transform: rotate(-.8deg) translateY(-3px); }
+.card:nth-child(even):hover { transform: rotate(.8deg) translateY(-3px); }
+.card h3 { font: 400 1.75rem/1.05 var(--display); text-transform: uppercase; margin: 1.1rem .2rem .45rem; }
+.card p { margin: 0 .2rem; font-size: 1rem; }
+kbd { background: var(--sun-light); border: 2px solid var(--ink); border-bottom-width: 4px; border-radius: 7px; padding: .05em .4em; font-weight: 700; white-space: nowrap; }
+/* drag demo */
+.snap { position: absolute; left: 6%; right: 12%; border-top: 2px dashed rgba(255, 255, 255, .55); }
+.drag-cap { position: absolute; left: 4%; right: 10%; font-size: 9.5cqw; animation: drag 7s cubic-bezier(.6, 0, .3, 1) infinite; top: 74%; }
+.drag-rail { position: absolute; right: 3.5%; top: 9%; bottom: 9%; width: 6px; border-radius: 3px; background: rgba(255, 255, 255, .5); }
+.drag-knob { position: absolute; right: calc(3.5% - 7px); width: 20px; height: 34px; margin-top: -3px; border-radius: 8px; background: #FFD400; border: 2.5px solid var(--ink); animation: drag 7s cubic-bezier(.6, 0, .3, 1) infinite; top: 74%; }
+@keyframes drag { 0%, 18% { top: 74%; } 33%, 51% { top: 43%; } 66%, 84% { top: 9%; } 100% { top: 74%; } }
+/* timeline demo */
+.demo-tl { background: #24272D; }
+.tl-ruler { position: absolute; left: 0; right: 0; top: 12%; height: 10%; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .55) 0 2px, transparent 2px 12.5%); opacity: .6; }
+.tl-film { position: absolute; left: 0; right: 0; top: 28%; height: 50%; background: linear-gradient(90deg, transparent calc(100% - 2px), rgba(0, 0, 0, .55) 0) 0 0 / 12.5% 100%, radial-gradient(circle at 50% 100%, #FF5D8F 0 42%, transparent 44%) 0 0 / 12.5% 100%, #7CCBFF; }
+.tl-b { position: absolute; top: 33%; height: 40%; border-radius: 8px; background: rgba(255, 255, 255, .5); border: 2px solid rgba(255, 255, 255, .9); }
+.tl-b.sel { background: rgba(255, 216, 74, .75); border: 4px solid #FFD400; border-inline-width: 13px; display: grid; place-items: center; font: 800 4.2cqw/1 system-ui, sans-serif; color: #14171B; animation: nudge 5s ease-in-out infinite; white-space: nowrap; }
+.tl-b.sel::before, .tl-b.sel::after { content: "‹"; position: absolute; left: -10px; top: 50%; transform: translateY(-58%); font-size: 16px; color: #14171B; }
+.tl-b.sel::after { content: "›"; left: auto; right: -10px; }
+.tl-ph { position: absolute; top: 8%; bottom: 8%; left: 30%; width: 3px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .5); }
+.tl-ph::before { content: ""; position: absolute; left: -5.5px; top: -4px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .5); }
+@keyframes nudge { 0%, 15%, 100% { left: 30%; width: 34%; } 40%, 55% { left: 40%; width: 34%; } 75%, 88% { left: 40%; width: 22%; } }
+/* add-a-line demo */
+.keycap { position: absolute; right: 5%; top: 8%; font: 800 6cqw/1 system-ui, sans-serif; background: #fff; color: var(--ink); border: 3px solid var(--ink); border-bottom-width: 6px; border-radius: 10px; padding: .35em .55em; transform: rotate(6deg); animation: press 2.6s ease-in-out infinite; }
+@keyframes press { 0%, 70%, 100% { transform: rotate(6deg); } 80% { transform: rotate(6deg) translateY(4px) scale(.96); } }
+/* crop demo */
+.crop-frame { position: absolute; inset: 0 34.2%; border: 3px solid #FFD400; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .6); transition: inset .55s cubic-bezier(.6, 0, .3, 1); display: flex; align-items: flex-end; justify-content: center; padding: 0 2% 5%; background: linear-gradient(90deg, transparent 33%, rgba(255, 255, 255, .35) 33% calc(33% + 1px), transparent 0 66%, rgba(255, 255, 255, .35) 66% calc(66% + 1px), transparent 0), linear-gradient(transparent 33%, rgba(255, 255, 255, .35) 33% calc(33% + 1px), transparent 0 66%, rgba(255, 255, 255, .35) 66% calc(66% + 1px), transparent 0); }
+.crop-frame .hcap { font-size: 7.4cqw; }
+[data-shape="16:9"] .crop-frame { inset: 0; }
+[data-shape="1:1"] .crop-frame { inset: 0 21.9%; }
+[data-shape="4:5"] .crop-frame { inset: 0 27.5%; }
+.crop-tag { position: absolute; left: 4%; top: 7%; font: 800 4.6cqw/1 system-ui, sans-serif; background: #FFD400; color: var(--ink); border: 2.5px solid var(--ink); border-radius: 8px; padding: .3em .5em; }
+/* send demo */
+.demo-chat { background: var(--mint); display: flex; flex-direction: column; justify-content: center; gap: 2.5%; padding: 0 6%; }
+.bubble { max-width: 62%; background: #fff; border: 2.5px solid var(--ink); border-radius: 16px 16px 16px 4px; padding: .5em .8em; font: 700 4.4cqw/1.2 var(--body); }
+.bubble.me { align-self: flex-end; background: var(--pink); border-radius: 16px 16px 4px 16px; padding: 2.2%; width: 52%; max-width: none; }
+.bubble.me svg { border-radius: 9px; border: 2px solid var(--ink); width: 100%; height: auto; }
+.bubble.me small { display: block; font-size: 3.3cqw; margin-top: .35em; }
+
+/* ---------- styles gallery ---------- */
+.styles { background: var(--pink); }
+.styles .dots { position: absolute; inset: 0; -webkit-mask-image: linear-gradient(120deg, #000, transparent 40%, transparent 60%, #000); mask-image: linear-gradient(120deg, #000, transparent 40%, transparent 60%, #000); pointer-events: none; }
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem 1.8rem; list-style: none; padding: 0; margin: 0; position: relative; }
+.gallery li { position: relative; }
+.gallery li:nth-child(3n+1) { transform: rotate(-1deg); }
+.gallery li:nth-child(3n) { transform: rotate(1deg); }
+.tile { position: relative; aspect-ratio: 16 / 9; container-type: inline-size; border: 3px solid var(--ink); border-radius: 16px; overflow: hidden; box-shadow: 6px 6px 0 var(--ink); background: #2B2F36; }
+.tile svg { width: 100%; height: 100%; }
+.tile .box { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); white-space: nowrap; font: 700 6.2cqw/1.25 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #fff; background: rgba(0, 0, 0, .72); padding: .22em .6em; border-radius: .38em; }
+.tile .box.hl { font: 900 6.2cqw/1.25 ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif; color: #000; background: #fff; }
+.gallery h3 { display: inline-block; font: 400 1.35rem/1 var(--display); text-transform: uppercase; letter-spacing: .03em; background: #fff; border: 3px solid var(--ink); border-radius: 10px; padding: .32em .6em .26em; margin: -1.1rem 0 0 1rem; position: relative; box-shadow: 3px 3px 0 var(--ink); transform: rotate(-2deg); }
+.gallery p { font-size: .92rem; font-weight: 700; margin: .5rem 0 0 1rem; }
+.own { margin-top: 2.6rem; padding: 1.3rem 1.5rem; display: grid; grid-template-columns: auto 1fr; gap: 1.2rem; align-items: center; position: relative; }
+.own .swatches { display: flex; }
+.own .swatches i { width: 2.4rem; height: 2.4rem; border-radius: 50%; border: 3px solid var(--ink); margin-right: -.6rem; }
+.own h3 { font: 400 1.7rem/1 var(--display); text-transform: uppercase; margin-bottom: .3rem; }
+
+/* ---------- privacy ---------- */
+.privacy { background: var(--ink); color: #fff; overflow: hidden; }
+.privacy::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, rgba(255, 93, 143, .5) 2.5px, transparent 3px) 0 0 / 18px 18px; -webkit-mask-image: radial-gradient(circle at 100% 100%, #000, transparent 55%); mask-image: radial-gradient(circle at 100% 100%, #000, transparent 55%); }
+.privacy .wrap { position: relative; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 3rem; align-items: center; }
+.privacy h2 { font-size: clamp(2.6rem, 7vw, 5rem); color: var(--sun-light); margin-bottom: 1.2rem; transform: rotate(-1.5deg); transform-origin: left; }
+.privacy p { font-size: 1.15rem; max-width: 36rem; }
+.privacy p + p { margin-top: .9rem; }
+.privacy p.fine { font-size: .95rem; opacity: .8; }
+.nope { list-style: none; padding: 0; margin: 0; display: grid; gap: 1rem; }
+.nope li { background: #fff; color: var(--ink); border: 3px solid #000; border-radius: 16px; box-shadow: 5px 5px 0 var(--pink); padding: .8rem 1.1rem; font: 400 1.5rem/1.1 var(--display); text-transform: uppercase; letter-spacing: .02em; display: flex; align-items: center; gap: .8rem; }
+.nope li:nth-child(odd) { transform: rotate(-1.4deg); }
+.nope li:nth-child(even) { transform: rotate(1.1deg) translateX(1rem); box-shadow: 5px 5px 0 var(--sun); }
+.nope svg { width: 2rem; height: 2rem; flex: none; }
+.privacy :focus-visible { outline-color: #fff; box-shadow: none; }
+
+/* ---------- command line ---------- */
+.cli { background: var(--sun-light); }
+.cli .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 3rem; align-items: center; }
+.cli h2 { font-size: clamp(2.4rem, 6vw, 4rem); margin-bottom: .9rem; }
+.cli p + p { margin-top: .9rem; }
+.term { background: #1B1E23; color: #E8EAEE; border: 3px solid var(--ink); border-radius: 16px; box-shadow: 8px 8px 0 var(--ink); overflow: hidden; transform: rotate(-.8deg); }
+.term pre { margin: 0; padding: 1.2rem 1.3rem 1.4rem; overflow-x: auto; font: 500 .9rem/1.7 var(--mono); tab-size: 2; }
+.term .c { color: #9AA3AF; }
+.term .p { color: var(--pink); }
+.term .f { color: var(--sun-light); }
+.term pre:focus-visible { outline-offset: -6px; outline-color: #fff; box-shadow: none; }
+
+/* ---------- faq ---------- */
+.faq-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem 1.6rem; align-items: start; }
+details { padding: 0; box-shadow: 4px 4px 0 var(--ink); }
+summary { cursor: pointer; list-style: none; padding: 1rem 3rem 1rem 1.2rem; font-weight: 800; font-size: 1.1rem; position: relative; border-radius: 17px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); width: 1.7rem; height: 1.7rem; display: grid; place-items: center; background: var(--sun-light); border: 2.5px solid var(--ink); border-radius: 50%; font: 800 1.2rem/1 system-ui, sans-serif; transition: transform .15s; }
+details[open] summary::after { transform: translateY(-50%) rotate(45deg); background: var(--pink); }
+details p { padding: 0 1.2rem 1.1rem; }
+
+/* ---------- last call + footer ---------- */
+.final { background: var(--sun); overflow: hidden; text-align: center; }
+.final::before { content: ""; position: absolute; left: 50%; top: 50%; width: 240vmax; height: 240vmax; margin: -120vmax 0 0 -120vmax; background: repeating-conic-gradient(var(--sun-light) 0 8deg, transparent 8deg 16deg); animation: spin 180s linear infinite reverse; }
+.final .wrap { position: relative; display: grid; justify-items: center; gap: 1.3rem; }
+.final img { width: 210px; height: 210px; animation: bob 3.2s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-10px) rotate(-3deg); } }
+.final h2 { font-size: clamp(2.8rem, 8vw, 5.5rem); transform: rotate(-2deg); }
+.final p { font-weight: 700; }
+footer { background: var(--ink); color: #fff; padding: 2.2rem 0; border-top: 4px solid var(--ink); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; }
+footer img { height: 40px; width: auto; }
+footer nav { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; font-weight: 700; margin-left: auto; }
+footer p { width: 100%; font-size: .9rem; opacity: .75; }
+footer :focus-visible { outline-color: #fff; box-shadow: none; }
+
+/* ---------- smaller screens ---------- */
+@media (max-width: 1020px) {
+  .hero-grid, .privacy .wrap, .cli .wrap { grid-template-columns: minmax(0, 1fr); }
+  .hero h1 { font-size: clamp(3.3rem, 13vw, 6.6rem); }
+  .cards, .gallery { grid-template-columns: repeat(2, 1fr); }
+  .gallery li { transform: none !important; }
+  .shot { max-width: 44rem; }
+}
+@media (max-width: 760px) {
+  header.top nav { display: none; }
+  .steps, .faq-list { grid-template-columns: 1fr; }
+  .steps { gap: 2.6rem; max-width: 26rem; margin-inline: auto; }
+  .nope li:nth-child(even) { transform: rotate(1.1deg); }
+}
+@media (max-width: 620px) {
+  .cards, .gallery { grid-template-columns: 1fr; }
+  .win-body { grid-template-columns: 1fr; }
+  .win-left { border-right: 0; border-bottom: 2px solid var(--ink); }
+  .stylebar, .exportbar { display: none; }
+  .win { transform: none; box-shadow: 6px 6px 0 var(--ink); }
+  .brand img.mark { width: 44px; height: 44px; }
+  .brand img.word { height: 36px; }
+  .btn { font-size: 1.3rem; }
+  .own { grid-template-columns: 1fr; }
+  .term pre { font-size: .78rem; }
+  .band-track span { font-size: 1.2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- Shared drawings: one blob, four faces, four backdrops. All original. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="blob" viewBox="0 0 200 220">
+      <g style="fill:var(--blob, #FF5D8F)" stroke="#1F2329" stroke-width="6" stroke-linejoin="round">
+        <path d="M78,44 L82,14 L100,34 L116,8 L124,44 Z"/>
+        <path d="M22,240 C12,104 34,38 100,38 C166,38 188,104 178,240 Z"/>
+      </g>
+    </symbol>
+    <symbol id="face-smug" viewBox="0 0 200 220">
+      <clipPath id="fs1"><ellipse cx="70" cy="96" rx="26" ry="28"/></clipPath>
+      <clipPath id="fs2"><ellipse cx="131" cy="96" rx="26" ry="28"/></clipPath>
+      <g stroke="#1F2329" stroke-width="5">
+        <ellipse cx="70" cy="96" rx="26" ry="28" fill="#fff"/><ellipse cx="131" cy="96" rx="26" ry="28" fill="#fff"/>
+      </g>
+      <g clip-path="url(#fs1)"><circle cx="83" cy="102" r="13" fill="#1F2329"/><circle cx="79" cy="97" r="4" fill="#fff"/><rect x="40" y="64" width="60" height="23" style="fill:var(--shade, #E23E77)"/><path d="M40,87 H100" stroke="#1F2329" stroke-width="5"/></g>
+      <g clip-path="url(#fs2)"><circle cx="144" cy="102" r="13" fill="#1F2329"/><circle cx="140" cy="97" r="4" fill="#fff"/><rect x="101" y="64" width="60" height="23" style="fill:var(--shade, #E23E77)"/><path d="M101,87 H161" stroke="#1F2329" stroke-width="5"/></g>
+      <g fill="none" stroke="#1F2329" stroke-width="5">
+        <ellipse cx="70" cy="96" rx="26" ry="28"/><ellipse cx="131" cy="96" rx="26" ry="28"/>
+      </g>
+      <g fill="none" stroke="#1F2329" stroke-width="6.5" stroke-linecap="round">
+        <path d="M51,60 L91,63"/><path d="M111,56 C124,45 144,45 156,55"/><path d="M84,142 C102,150 123,147 136,132"/><path d="M131,126 L142,136" stroke-width="5"/>
+      </g>
+    </symbol>
+    <symbol id="face-shock" viewBox="0 0 200 220">
+      <g stroke="#1F2329" stroke-width="5" fill="#fff"><circle cx="70" cy="96" r="25"/><circle cx="131" cy="96" r="25"/></g>
+      <circle cx="70" cy="98" r="7" fill="#1F2329"/><circle cx="131" cy="98" r="7" fill="#1F2329"/>
+      <g fill="none" stroke="#1F2329" stroke-width="6.5" stroke-linecap="round"><path d="M50,58 C60,48 78,48 88,56"/><path d="M113,56 C123,48 141,48 151,58"/></g>
+      <ellipse cx="100" cy="150" rx="13" ry="17" fill="#1F2329"/>
+    </symbol>
+    <symbol id="face-flat" viewBox="0 0 200 220">
+      <clipPath id="ff1"><ellipse cx="70" cy="96" rx="26" ry="24"/></clipPath>
+      <clipPath id="ff2"><ellipse cx="131" cy="96" rx="26" ry="24"/></clipPath>
+      <g stroke="#1F2329" stroke-width="5" fill="#fff"><ellipse cx="70" cy="96" rx="26" ry="24"/><ellipse cx="131" cy="96" rx="26" ry="24"/></g>
+      <g clip-path="url(#ff1)"><circle cx="70" cy="104" r="12" fill="#1F2329"/><rect x="40" y="68" width="60" height="26" style="fill:var(--shade, #E23E77)"/><path d="M40,94 H100" stroke="#1F2329" stroke-width="5"/></g>
+      <g clip-path="url(#ff2)"><circle cx="131" cy="104" r="12" fill="#1F2329"/><rect x="101" y="68" width="60" height="26" style="fill:var(--shade, #E23E77)"/><path d="M101,94 H161" stroke="#1F2329" stroke-width="5"/></g>
+      <g fill="none" stroke="#1F2329" stroke-width="5"><ellipse cx="70" cy="96" rx="26" ry="24"/><ellipse cx="131" cy="96" rx="26" ry="24"/></g>
+      <g fill="none" stroke="#1F2329" stroke-width="6.5" stroke-linecap="round"><path d="M52,60 H90"/><path d="M111,60 H149"/><path d="M82,146 H120"/></g>
+    </symbol>
+    <symbol id="face-happy" viewBox="0 0 200 220">
+      <g fill="none" stroke="#1F2329" stroke-width="7" stroke-linecap="round"><path d="M50,102 Q70,76 90,102"/><path d="M111,102 Q131,76 151,102"/></g>
+      <path d="M70,128 Q100,176 131,128 Z" fill="#1F2329" stroke="#1F2329" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M86,148 Q100,160 115,148 Q100,142 86,148 Z" fill="#FF8FB0"/>
+    </symbol>
+    <symbol id="bg-room" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+      <rect width="320" height="180" fill="#7CCBFF"/><rect y="132" width="320" height="48" fill="#4FA3DD"/>
+      <rect x="22" y="24" width="64" height="50" rx="4" fill="#FFF6DF" stroke="#1F2329" stroke-width="4"/><path d="M30,66 L48,44 L60,58 L68,50 L80,66 Z" fill="#6EE7C8" stroke="#1F2329" stroke-width="3" stroke-linejoin="round"/>
+      <g stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><path d="M262,132 L268,96 H292 L298,132 Z" fill="#FFB400"/><path d="M280,96 C262,74 262,56 272,50 C284,60 284,78 280,96 C294,74 304,70 310,76 C308,88 294,96 280,96" fill="#6EE7C8"/></g>
+    </symbol>
+    <symbol id="bg-hills" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+      <rect width="320" height="180" fill="#FFD84A"/><circle cx="252" cy="52" r="26" fill="#FF8A3D" stroke="#1F2329" stroke-width="4"/>
+      <g stroke="#1F2329" stroke-width="4"><ellipse cx="60" cy="190" rx="150" ry="70" fill="#6EE7C8"/><ellipse cx="270" cy="200" rx="150" ry="66" fill="#3CCBA6"/></g>
+    </symbol>
+    <symbol id="bg-night" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+      <rect width="320" height="180" fill="#3B2F7A"/><rect y="140" width="320" height="40" fill="#2A2160"/>
+      <path d="M58,26 a22,22 0 1 0 20,32 a17,17 0 1 1 -20,-32 Z" fill="#FFD84A" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"/>
+      <g fill="#fff"><circle cx="130" cy="30" r="2.5"/><circle cx="250" cy="24" r="2.5"/><circle cx="290" cy="70" r="2"/><circle cx="200" cy="52" r="2"/><circle cx="28" cy="90" r="2"/><circle cx="276" cy="112" r="2.5"/></g>
+    </symbol>
+    <symbol id="bg-burst" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+      <rect width="320" height="180" fill="#FF8A3D"/>
+      <path d="M160,100 L420,60 L420,140 Z M160,100 L340,300 L250,340 Z M160,100 L110,360 L20,330 Z M160,100 L-100,190 L-100,110 Z M160,100 L-60,-40 L20,-90 Z M160,100 L130,-120 L220,-120 Z M160,100 L330,-70 L400,-20 Z" fill="#FFA95E"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top wrap">
+      <a class="brand" href="#top" aria-label="Subya, home">
+        <img class="mark" src="assets/icon-512.png" width="54" height="54" alt="">
+        <img class="word" src="assets/wordmark.svg" width="330" height="130" alt="Subya">
+      </a>
+      <nav aria-label="Sections">
+        <a href="#features">Features</a>
+        <a href="#styles">Styles</a>
+        <a href="#cli">Command line</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/duggan/Subya">GitHub</a>
+      </nav>
+      <a class="btn small" href="https://github.com/duggan/Subya/releases/latest/download/Subya.dmg">Download</a>
+</header>
+
+<main id="main">
+<div class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <h1 class="display outlined">Big captions for your <em>memes.</em></h1>
+        <p class="lede">Subya (&ldquo;sub ya&rdquo;) burns big, readable captions straight into your clips, so the line lands even when the group chat is watching on mute. Drop a video in, fix the words, send it.</p>
+        <div class="cta-row">
+          <a class="btn" href="https://github.com/duggan/Subya/releases/latest/download/Subya.dmg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6.5 10.5 12 16l5.5-5.5M4 21h16"/></svg>
+            Download for Mac
+          </a>
+          <a class="btn ghost" href="https://github.com/duggan/Subya">Source on GitHub</a>
+        </div>
+        <ul class="chips" aria-label="Good to know">
+          <li>Requires macOS 26 Tahoe</li>
+          <li>Free &amp; open source</li>
+          <li>Signed &amp; notarized</li>
+        </ul>
+      </div>
+
+      <figure class="shot">
+        <!--
+          ============================================================
+          SCREENSHOT / DEMO GIF GOES HERE
+          When there's a real one, save it as docs/assets/screenshot.png
+          (or demo.gif), un-comment the <img> below, and delete the whole
+          <div class="win"> … </div> mock-up that follows it. The hero
+          script further down notices the mock-up is gone and does nothing.
+
+          <img class="real" src="assets/screenshot.png" width="1280" height="820"
+               alt="Subya's window: a video preview with a burned-in caption, a filmstrip timeline with caption blocks, and the list of caption lines.">
+          ============================================================
+        -->
+        <div class="win" id="heroWin" role="img" aria-label="A drawing of Subya's window. A pink blob character is on screen with a caption popping in one word at a time. Under the video is a filmstrip timeline with three caption blocks, and beside it the list of caption lines.">
+          <div class="win-bar" aria-hidden="true"><i></i><i></i><i></i><span>biscuits.mp4</span></div>
+          <div class="win-body" aria-hidden="true">
+            <div class="win-left">
+              <div class="preview">
+                <svg viewBox="0 0 320 180">
+                  <use href="#bg-room"/>
+                  <use href="#blob" x="86" y="26" width="148" height="163"/>
+                  <use class="face on" href="#face-happy" x="86" y="26" width="148" height="163"/>
+                  <use class="face" href="#face-flat" x="86" y="26" width="148" height="163"/>
+                  <use class="face" href="#face-smug" x="86" y="26" width="148" height="163"/>
+                  <text id="heroWord" class="cap c-hero" x="160" y="166">BISCUIT</text>
+                </svg>
+              </div>
+              <div class="transport">
+                <span class="play"></span>
+                <span id="heroTime">0:02.1 / 0:06.6</span>
+                <span class="pill">+ Line</span>
+                <span class="pill">&minus; &#9135;&#9135;&#9679;&#9135; +</span>
+              </div>
+              <div class="track">
+                <span class="blk on" style="left:4.5%;width:32%">I'll just have one biscuit.</span>
+                <span class="blk" style="left:42.4%;width:13.6%">One.</span>
+                <span class="blk" style="left:62.1%;width:30.3%">The whole packet is gone.</span>
+                <span class="playhead" id="heroHead"></span>
+              </div>
+            </div>
+            <div class="win-right">
+              <div class="stylebar"><span>Meme &#9662;</span><span>Bottom</span><span>AA</span><span class="lit">One word</span></div>
+              <ol class="rows">
+                <li class="on"><time>0:00.3</time><b>I'll just have one biscuit.</b></li>
+                <li><time>0:02.8</time><b>One.</b></li>
+                <li><time>0:04.1</time><b>The whole <u>packet</u> is gone.</b></li>
+              </ol>
+              <div class="exportbar"><span>Export&hellip;</span></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>An artist's impression. The real thing has fewer biscuits.</figcaption>
+      </figure>
+    </div>
+  </div>
+</div>
+
+<div class="band" aria-hidden="true">
+  <div class="band-track">
+    <span>No uploads <b>&#9733;</b> No account <b>&#9733;</b> No permissions <b>&#9733;</b> No subtitles going missing <b>&#9733;</b> Just big loud captions <b>&#9733;</b> Made on your Mac <b>&#9733;</b></span>
+    <span>No uploads <b>&#9733;</b> No account <b>&#9733;</b> No permissions <b>&#9733;</b> No subtitles going missing <b>&#9733;</b> Just big loud captions <b>&#9733;</b> Made on your Mac <b>&#9733;</b></span>
+  </div>
+</div>
+
+<section id="how" class="dots" aria-labelledby="how-h">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="how-h" class="display">Three steps. Then smugness.</h2>
+      <p>No project files, no timeline wrangling degree. A clip goes in, a captioned clip comes out.</p>
+    </div>
+    <ol class="steps">
+      <li class="sticker">
+        <svg viewBox="0 0 240 130" aria-hidden="true">
+          <rect x="30" y="34" width="180" height="90" rx="14" fill="#FFF6DF" stroke="#1F2329" stroke-width="4" stroke-dasharray="10 8"/>
+          <g transform="rotate(-10 120 52)">
+            <rect x="84" y="10" width="72" height="56" rx="8" fill="#7CCBFF" stroke="#1F2329" stroke-width="4"/>
+            <path d="M111,26 L133,38 L111,50 Z" fill="#fff" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"/>
+          </g>
+          <path d="M120,78 V104 M108,94 L120,106 L132,94" fill="none" stroke="#1F2329" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>Drop</h3>
+        <p>Drag a video onto the window. Subya transcribes it right there on your Mac and splits the speech into short caption lines.</p>
+      </li>
+      <li class="sticker">
+        <svg viewBox="0 0 240 130" aria-hidden="true">
+          <g stroke="#1F2329" stroke-width="4">
+            <rect x="24" y="12" width="192" height="30" rx="9" fill="#fff"/>
+            <rect x="24" y="50" width="192" height="30" rx="9" fill="#fff"/>
+            <rect x="24" y="88" width="192" height="30" rx="9" fill="#fff"/>
+          </g>
+          <g stroke="#1F2329" stroke-width="6" stroke-linecap="round"><path d="M38,27 H120"/><path d="M38,103 H150"/><path d="M38,65 H76"/></g>
+          <path d="M88,65 H132" stroke="#FF5D8F" stroke-width="6" stroke-linecap="round"/>
+          <path d="M84,72 q4,-6 8,0 t8,0 t8,0 t8,0 t8,0 t8,0" fill="none" stroke="#E23E77" stroke-width="2.5"/>
+          <path d="M142,56 V74" stroke="#1F2329" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        <h3>Fix</h3>
+        <p>It heard &ldquo;biscuit&rdquo; as &ldquo;brisket&rdquo;? Fix it in the list. The preview updates as you type, and it's exactly what gets exported.</p>
+      </li>
+      <li class="sticker">
+        <svg viewBox="0 0 240 130" aria-hidden="true">
+          <rect x="26" y="26" width="104" height="78" rx="10" fill="#FF5D8F" stroke="#1F2329" stroke-width="4"/>
+          <text x="78" y="92" text-anchor="middle" font-family="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif" font-size="22" fill="#fff" stroke="#1F2329" stroke-width="5" stroke-linejoin="round" paint-order="stroke">LOL</text>
+          <path d="M142,65 H176 M164,52 L178,65 L164,78" fill="none" stroke="#1F2329" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M190,40 h30 a8,8 0 0 1 8,8 v30 a8,8 0 0 1 -8,8 h-14 l-12,12 v-12 h-2 a8,8 0 0 1 -8,-8 v-30 a8,8 0 0 1 8,-8 Z" fill="#6EE7C8" stroke="#1F2329" stroke-width="4" stroke-linejoin="round" transform="translate(-4 0)"/>
+        </svg>
+        <h3>Export</h3>
+        <p>You get a new <code>-captioned.mp4</code> next to the original, captions drawn into every frame. Your original is never touched.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="features" class="features" aria-labelledby="feat-h">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="feat-h" class="display">Small app. Big mouth.</h2>
+      <p>Everything you need to make a clip land, and not a lot else.</p>
+    </div>
+    <div class="cards">
+      <article class="card sticker">
+        <div class="demo" role="img" aria-label="A startled purple blob with single words flashing up one at a time in large letters.">
+          <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
+            <use href="#bg-night"/>
+            <use href="#blob" x="92" y="34" width="136" height="150" style="--blob:#B79CFF"/>
+            <use href="#face-shock" x="92" y="34" width="136" height="150"/>
+            <text class="cap c-oneword" x="160" y="108" data-words="WAIT|WHAT|DID|YOU|JUST|SAY">WHAT</text>
+          </svg>
+        </div>
+        <h3>One word at a time</h3>
+        <p>Each word pops up alone as it's spoken, the punchy reaction-clip look. A word-level timeline lets you nudge exactly when each one hits.</p>
+      </article>
+
+      <article class="card sticker">
+        <div class="demo" role="img" aria-label="A caption sliding between the bottom, middle and top of a video, snapping at each.">
+          <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
+            <use href="#bg-hills"/>
+            <use href="#blob" x="92" y="40" width="136" height="150" style="--blob:#FF8A3D;--shade:#E0651A"/>
+            <use href="#face-flat" x="92" y="40" width="136" height="150" style="--shade:#E0651A"/>
+          </svg>
+          <span class="snap" style="top:17%" aria-hidden="true"></span><span class="snap" style="top:50%" aria-hidden="true"></span><span class="snap" style="top:83%" aria-hidden="true"></span>
+          <span class="hcap drag-cap" aria-hidden="true">Put me anywhere</span>
+          <span class="drag-rail" aria-hidden="true"></span><span class="drag-knob" aria-hidden="true"></span>
+        </div>
+        <h3>Drag it where it fits</h3>
+        <p>Grab the caption on the video and slide it up or down. It snaps to top, middle and bottom on the way. Resize the text with a slider.</p>
+      </article>
+
+      <article class="card sticker">
+        <div class="demo demo-tl" role="img" aria-label="A filmstrip timeline with caption blocks. The selected block is yellow with grips, and is being moved and shortened.">
+          <span class="tl-ruler"></span><span class="tl-film"></span>
+          <span class="tl-b" style="left:4%;width:20%"></span>
+          <span class="tl-b sel" style="left:30%;width:34%">so anyway</span>
+          <span class="tl-b" style="left:80%;width:16%"></span>
+          <span class="tl-ph"></span>
+        </div>
+        <h3>A timeline you already know</h3>
+        <p>It works like the trim bar in Photos: a filmstrip with every caption as a block. Drag to move, drag the edges to retime, zoom in for precision.</p>
+      </article>
+
+      <article class="card sticker">
+        <div class="demo" role="img" aria-label="A silent, unimpressed green blob with a caption added by hand, and a Command-N key.">
+          <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
+            <use href="#bg-burst"/>
+            <use href="#blob" x="92" y="40" width="136" height="150" style="--blob:#6EE7C8;--shade:#2FBF9B"/>
+            <use href="#face-smug" x="92" y="40" width="136" height="150" style="--shade:#2FBF9B"/>
+            <text class="cap c-meme" x="160" y="164" style="font-size:24px">(SAYS NOTHING. MEANS IT.)</text>
+          </svg>
+          <span class="keycap" aria-hidden="true">&#8984;N</span>
+        </div>
+        <h3>Say what nobody said</h3>
+        <p>Silent stare? Reaction shot? Park the playhead and press <kbd>&#8984;N</kbd> to add a line nobody says out loud. Videos with no sound at all work too.</p>
+      </article>
+
+      <article class="card sticker">
+        <div class="demo" id="cropDemo" data-shape="9:16" role="img" aria-label="A crop frame switching between 16:9, 1:1, 9:16 and 4:5, with the caption re-wrapping to stay inside it.">
+          <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
+            <use href="#bg-room"/>
+            <use href="#blob" x="92" y="30" width="136" height="150" style="--blob:#FFD84A;--shade:#F0A800"/>
+            <use href="#face-happy" x="92" y="30" width="136" height="150"/>
+          </svg>
+          <span class="crop-frame" aria-hidden="true"><span class="hcap">Still fits</span></span>
+          <span class="crop-tag" aria-hidden="true">9:16</span>
+        </div>
+        <h3>Trim it. Crop it.</h3>
+        <p>Keep just the good bit: trim a long video while it's transcribing and only the part you keep gets transcribed. Then crop to 9:16, 1:1, 4:5 or 16:9. Captions stay inside the frame.</p>
+      </article>
+
+      <article class="card sticker">
+        <div class="demo demo-chat" role="img" aria-label="A chat with a captioned clip being sent as a small 720p file.">
+          <span class="bubble" aria-hidden="true">explain yourself</span>
+          <span class="bubble me" aria-hidden="true">
+            <svg viewBox="0 0 320 180">
+              <use href="#bg-night"/>
+              <use href="#blob" x="92" y="34" width="136" height="150"/>
+              <use href="#face-smug" x="92" y="34" width="136" height="150"/>
+              <text class="cap c-meme" x="160" y="166" style="font-size:36px">NO.</text>
+            </svg>
+            <small>clip-captioned.mp4 &middot; 720p</small>
+          </span>
+        </div>
+        <h3>Small enough to send</h3>
+        <p>Exports land next to the original (or wherever you like). Tick &ldquo;Smaller for messaging&rdquo; for a 720p copy that sends faster.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="styles" class="styles" aria-labelledby="styles-h">
+  <div class="dots" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="styles-h" class="display outlined">Nine looks. Zero subtlety.</h2>
+      <p><strong>Pick a built-in style, or duplicate one and make it yours.</strong> These are drawn by your browser with whatever fonts it has, so they're a close impression, not a screenshot.</p>
+    </div>
+    <ul class="gallery">
+      <li>
+        <div class="tile" role="img" aria-label="Sample: bold white text with a black outline at the bottom, reading: That's what I said.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><use href="#blob" x="92" y="36" width="136" height="150"/><use href="#face-flat" x="92" y="36" width="136" height="150"/><text class="cap c-classic" x="160" y="163">That's what I said.</text></svg>
+        </div>
+        <h3>Classic</h3><p>Helvetica Neue Bold, white on a black outline.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: Impact capitals with a black outline at the top, reading: When the wifi drops.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-burst"/><use href="#blob" x="92" y="44" width="136" height="150" style="--blob:#7CCBFF"/><use href="#face-shock" x="92" y="44" width="136" height="150"/><text class="cap c-meme" x="160" y="36">WHEN THE WIFI DROPS</text></svg>
+        </div>
+        <h3>Meme</h3><p>Impact, all caps, up top. You know the one.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: heavy rounded text, reading: No thoughts, just vibes.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-hills"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#B79CFF"/><use href="#face-happy" x="92" y="36" width="136" height="150"/><text class="cap c-rounded" x="160" y="163">No thoughts, just vibes.</text></svg>
+        </div>
+        <h3>Rounded</h3><p>The system's rounded face. Friendly.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: marker-pen lettering, reading: Trust me, I'm a blob.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-night"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#6EE7C8;--shade:#2FBF9B"/><use href="#face-smug" x="92" y="36" width="136" height="150" style="--shade:#2FBF9B"/><text class="cap c-marker" x="160" y="163">Trust me, I'm a blob.</text></svg>
+        </div>
+        <h3>Marker</h3><p>Marker Felt, like you wrote it on the fridge.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: bold typewriter lettering, reading: Dear diary: yikes.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#FF8A3D"/><use href="#face-shock" x="92" y="36" width="136" height="150"/><text class="cap c-type" x="160" y="163">Dear diary: yikes.</text></svg>
+        </div>
+        <h3>Typewriter</h3><p>American Typewriter, for dramatic readings.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: condensed extra-bold poster lettering, reading: Absolutely not.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-burst"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#FFD84A;--shade:#F0A800"/><use href="#face-flat" x="92" y="36" width="136" height="150" style="--shade:#F0A800"/><text class="cap c-poster" x="160" y="164">Absolutely not.</text></svg>
+        </div>
+        <h3>Poster</h3><p>Futura Condensed ExtraBold. Coming this summer.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: white text in a see-through black rounded box, reading: He said what now?">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-hills"/><use href="#blob" x="92" y="30" width="136" height="150"/><use href="#face-shock" x="92" y="30" width="136" height="150"/></svg>
+          <span class="box" aria-hidden="true">He said what now?</span>
+        </div>
+        <h3>Boxed</h3><p>White text in a see-through black box.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: black rounded text in a white box, reading: Breaking: it's Monday.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-night"/><use href="#blob" x="92" y="30" width="136" height="150" style="--blob:#7CCBFF;--shade:#3F9ED9"/><use href="#face-flat" x="92" y="30" width="136" height="150" style="--shade:#3F9ED9"/></svg>
+          <span class="box hl" aria-hidden="true">Breaking: it's Monday.</span>
+        </div>
+        <h3>Highlight</h3><p>Black on a white box, like a sticky label.</p>
+      </li>
+      <li>
+        <div class="tile" role="img" aria-label="Sample: one huge rounded word in capitals across the middle, reading: Nope.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#B79CFF;--shade:#8A68E8"/><use href="#face-smug" x="92" y="36" width="136" height="150" style="--shade:#8A68E8"/><text class="cap c-oneword" x="160" y="108" data-words="NOPE|NOT|TODAY|PAL">NOPE</text></svg>
+        </div>
+        <h3>One Word</h3><p>Huge, centred, one word at a time.</p>
+      </li>
+    </ul>
+    <div class="own sticker">
+      <div class="swatches" aria-hidden="true"><i style="background:#fff"></i><i style="background:#FFD84A"></i><i style="background:#6EE7C8"></i><i style="background:#7CCBFF"></i><i style="background:#1F2329"></i></div>
+      <div>
+        <h3>Or roll your own</h3>
+        <p>Duplicate any style in Settings and change the lot: any font on your Mac, text and outline colours, outline thickness, a soft shadow, a box behind the text, position, size, caps, and whole lines or one word at a time. With a live preview.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="privacy" class="privacy" aria-labelledby="priv-h">
+  <div class="wrap">
+    <div>
+      <h2 id="priv-h" class="display">Everything stays on your Mac.</h2>
+      <p>Your clip is transcribed by the speech recognition built into macOS, on your own machine. Nothing is uploaded, there's nothing to sign up for, and Subya doesn't ask for a single permission.</p>
+      <p>It makes no network calls of its own. Your group chat's secrets are safe. From us, anyway.</p>
+      <p class="fine">Small print: the first time you use a language, macOS may download Apple's speech model for it. And this website has no analytics, no cookies and no trackers either.</p>
+    </div>
+    <ul class="nope">
+      <li><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#FF5D8F" stroke="#1F2329" stroke-width="3"/><path d="M10 10l12 12M22 10 10 22" stroke="#1F2329" stroke-width="3.5" stroke-linecap="round"/></svg>No uploads</li>
+      <li><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#FFD84A" stroke="#1F2329" stroke-width="3"/><path d="M10 10l12 12M22 10 10 22" stroke="#1F2329" stroke-width="3.5" stroke-linecap="round"/></svg>No account</li>
+      <li><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#FF5D8F" stroke="#1F2329" stroke-width="3"/><path d="M10 10l12 12M22 10 10 22" stroke="#1F2329" stroke-width="3.5" stroke-linecap="round"/></svg>No permission prompts</li>
+      <li><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#FFD84A" stroke="#1F2329" stroke-width="3"/><path d="M10 10l12 12M22 10 10 22" stroke="#1F2329" stroke-width="3.5" stroke-linecap="round"/></svg>No phoning home</li>
+    </ul>
+  </div>
+</section>
+
+<section id="cli" class="cli" aria-labelledby="cli-h">
+  <div class="wrap">
+    <div>
+      <h2 id="cli-h" class="display">Also speaks Terminal.</h2>
+      <p>The <code>subya</code> command-line tool does the same job without the window: transcribe to an SRT file, fix it in any editor, then burn it in. Handy for scripting a batch of clips.</p>
+      <p>It takes the same styles (including your own), plus <code>--trim</code>, <code>--crop</code>, <code>--words</code> and <code>--small</code>.</p>
+      <p>It isn't in the download yet: it runs from the source with Swift (Xcode 26). <a href="https://github.com/duggan/Subya#command-line">Details in the README.</a></p>
+    </div>
+    <div class="term">
+      <div class="win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+<pre tabindex="0" aria-label="Example subya commands"><code><span class="c"># get the source</span>
+<span class="p">$</span> git clone https://github.com/duggan/Subya &amp;&amp; cd Subya
+
+<span class="c"># transcribe, tidy up the words, burn them in</span>
+<span class="p">$</span> swift run subya transcribe clip.mp4 <span class="f">--srt</span> &gt; clip.srt
+<span class="p">$</span> swift run subya burn clip.mp4 clip-captioned.mp4 <span class="f">--captions</span> clip.srt
+
+<span class="c"># or the lot at once: 15 seconds, vertical, Meme style, small</span>
+<span class="p">$</span> swift run subya burn clip.mp4 out.mp4 \
+    <span class="f">--style</span> Meme <span class="f">--trim</span> 1:05-1:20 <span class="f">--crop</span> 9:16 <span class="f">--small</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="dots" aria-labelledby="faq-h">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="faq-h" class="display">Questions, answered loudly.</h2>
+    </div>
+    <div class="faq-list">
+      <details class="sticker" open>
+        <summary>Why burn the captions in? Aren't subtitle tracks a thing?</summary>
+        <p>They are, and messaging apps tend to drop or hide them. Captions drawn into the frames can't go missing: if the video plays, the text is there, sound on or off.</p>
+      </details>
+      <details class="sticker">
+        <summary>Which languages does it understand?</summary>
+        <p>Whatever Apple's on-device transcription supports on your Mac. Subya uses your Mac's language by default, and you can pick another in Settings for clips in a different one.</p>
+      </details>
+      <details class="sticker">
+        <summary>Intel or Apple silicon?</summary>
+        <p>It's a universal app, and needs macOS 26 (Tahoe) or later. Transcription depends on what macOS supports on your Mac; where it isn't available, you can still add lines by hand.</p>
+      </details>
+      <details class="sticker">
+        <summary>Why does it need macOS 26?</summary>
+        <p>The on-device transcription Subya is built on arrived in macOS 26. It's also why there's nothing to upload and no permission to grant.</p>
+      </details>
+      <details class="sticker">
+        <summary>Will it mess with my original video?</summary>
+        <p>Never. Subya always writes a new file (by default <code>name-captioned.mp4</code>, next to the original) and won't overwrite an earlier export either.</p>
+      </details>
+      <details class="sticker">
+        <summary>My clip has no sound. Now what?</summary>
+        <p>Memes are often silent, so that's fine: the video opens with no captions and you add your own lines wherever you want them.</p>
+      </details>
+      <details class="sticker">
+        <summary>Is it really free?</summary>
+        <p>Yes. Free to download, no account, no ads, and the source is on GitHub under the GPL-3.0 licence.</p>
+      </details>
+      <details class="sticker">
+        <summary>Will macOS complain when I open it?</summary>
+        <p>It shouldn't. Subya is signed with a Developer ID and notarized by Apple, so it opens like any other downloaded app.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="final" aria-labelledby="final-h">
+  <div class="wrap">
+    <img src="assets/icon-512.png" width="210" height="210" alt="Subya's icon: a pink blob giving smug side-eye on a yellow sunburst, captioned SUB YA.">
+    <h2 id="final-h" class="display outlined">Go on. Sub ya.</h2>
+    <a class="btn" href="https://github.com/duggan/Subya/releases/latest/download/Subya.dmg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6.5 10.5 12 16l5.5-5.5M4 21h16"/></svg>
+      Download Subya.dmg
+    </a>
+    <p>Free &amp; open source &middot; Requires macOS 26 Tahoe or later</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img src="assets/wordmark.svg" width="330" height="130" alt="Subya">
+    <nav aria-label="Project links">
+      <a href="https://github.com/duggan/Subya">GitHub</a>
+      <a href="https://github.com/duggan/Subya/releases">Releases</a>
+      <a href="https://github.com/duggan/Subya/issues">Report a bug</a>
+      <a href="https://github.com/duggan/Subya/blob/main/LICENSE">GPL-3.0 licence</a>
+    </nav>
+    <p>Subya is free software under the GNU General Public License v3.0. All characters on this page are original and any resemblance to your group chat is coincidental.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var calm = window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (calm.matches) return;   // the page as written is the still version
+
+  function pop(el, text) {
+    el.textContent = text;
+    el.classList.remove("pop");
+    el.getBoundingClientRect();
+    el.classList.add("pop");
+  }
+
+  // Run something only while its element is on screen.
+  function whileVisible(el, start, stop) {
+    if (!("IntersectionObserver" in window)) { start(); return; }
+    new IntersectionObserver(function (entries) {
+      entries[entries.length - 1].isIntersecting ? start() : stop();
+    }).observe(el);
+  }
+
+  // Hero: the pretend window plays a 6.6 s clip, one word at a time.
+  var win = document.getElementById("heroWin");
+  if (win) {
+    var LENGTH = 6.6;
+    var captions = [
+      { start: 0.3, end: 2.4, words: ["I'LL", "JUST", "HAVE", "ONE", "BISCUIT"] },
+      { start: 2.8, end: 3.7, words: ["ONE."] },
+      { start: 4.1, end: 6.1, words: ["THE", "WHOLE", "PACKET", "IS", "GONE"] }
+    ];
+    var word = document.getElementById("heroWord"), head = document.getElementById("heroHead"),
+        clock = document.getElementById("heroTime"), rows = win.querySelectorAll(".rows li"),
+        blocks = win.querySelectorAll(".blk"), faces = win.querySelectorAll(".face"),
+        shown = "", face = -1, tenth = -1, frame = 0, origin = performance.now();
+    var tick = function (now) {
+      var t = ((now - origin) / 1000) % LENGTH, c = -1, w = -1;
+      for (var i = 0; i < captions.length; i++) {
+        if (t >= captions[i].start && t < captions[i].end) {
+          c = i;
+          w = Math.floor((t - captions[i].start) / (captions[i].end - captions[i].start) * captions[i].words.length);
+        }
+      }
+      var key = c + ":" + w;
+      if (key !== shown) {
+        shown = key;
+        if (c < 0) { word.textContent = ""; } else { pop(word, captions[c].words[w]); }
+        for (var r = 0; r < rows.length; r++) {
+          rows[r].classList.toggle("on", r === c);
+          blocks[r].classList.toggle("on", r === c);
+        }
+        if (c >= 0 && c !== face) {
+          face = c;
+          for (var f = 0; f < faces.length; f++) faces[f].classList.toggle("on", f === c);
+        }
+      }
+      head.style.transform = "translateX(" + (t / LENGTH * 100).toFixed(2) + "%)";
+      var nowTenth = Math.floor(t * 10);
+      if (nowTenth !== tenth) { tenth = nowTenth; clock.textContent = "0:0" + (nowTenth / 10).toFixed(1) + " / 0:06.6"; }
+      frame = requestAnimationFrame(tick);
+    };
+    whileVisible(win, function () { if (!frame) frame = requestAnimationFrame(tick); },
+                      function () { cancelAnimationFrame(frame); frame = 0; });
+  }
+
+  // One-word samples: cycle through their words.
+  Array.prototype.forEach.call(document.querySelectorAll("[data-words]"), function (el) {
+    var words = el.getAttribute("data-words").split("|"), i = 0, timer = 0;
+    whileVisible(el, function () {
+      if (!timer) timer = setInterval(function () { i = (i + 1) % words.length; pop(el, words[i]); }, 480);
+    }, function () { clearInterval(timer); timer = 0; });
+  });
+
+  // Crop demo: step through the shapes.
+  var crop = document.getElementById("cropDemo");
+  if (crop) {
+    var shapes = ["9:16", "1:1", "4:5", "16:9"], s = 0, tag = crop.querySelector(".crop-tag"), cropTimer = 0;
+    whileVisible(crop, function () {
+      if (!cropTimer) cropTimer = setInterval(function () {
+        s = (s + 1) % shapes.length;
+        crop.setAttribute("data-shape", shapes[s]);
+        tag.textContent = shapes[s];
+      }, 1700);
+    }, function () { clearInterval(cropTimer); cropTimer = 0; });
+  }
+})();
+</script>
+</body>
+</html>
