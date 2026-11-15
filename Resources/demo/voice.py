@@ -6,10 +6,10 @@ Writes line1.wav … line4.wav (24 kHz mono 16-bit).
 import base64, json, os, sys, urllib.request, wave
 
 LINES = [
-    ("I'm just going to have one biscuit.", "breezy, cheerful and self-assured, like announcing a perfectly reasonable plan"),
-    ("Just one.", "flat and deadpan, mouth slightly full, trying to sound convincing"),
-    ("Maybe two.", "sheepish and a little guilty, quieter, a tiny nervous laugh in the voice"),
-    ("The whole packet is gone.", "genuinely stunned and appalled at yourself, comic disbelief, said all in one quick breath with no pause between words"),
+    ("You're watching this on mute, aren't you?", "knowing and unbothered, like you've caught someone out and find it mildly amusing"),
+    ("That's fine. I get it.", "dry and magnanimous, a shrug in the voice, short pause between the two sentences"),
+    ("That's why I brought subtitles.", "matter-of-fact, quietly pleased with yourself, a slight lean on 'subtitles'"),
+    ("Capisce?", "low, slow and final, one word, like closing a deal"),
 ]
 
 def key():
@@ -26,7 +26,9 @@ def speak(text, delivery, voice, api_key):
         "stream": True,
         "messages": [
             {"role": "system", "content":
-                "You are a voice actor for a short cartoon about a cute, cheeky speech-bubble character. "
+                "You are a voice actor for a short cartoon about a speech-bubble character called Subby: a "
+                "laid-back New York wiseguy type, with a thick, gravelly New York Italian-American accent, "
+                "deadpan and street-smart, talking straight to the viewer. Don't imitate any real actor. "
                 "Say exactly the line the user gives, word for word, and nothing else: no greeting, no "
                 "commentary. Natural, warm, human comic timing; clear diction. Delivery: " + delivery},
             {"role": "user", "content": text},

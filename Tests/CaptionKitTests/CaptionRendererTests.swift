@@ -12,6 +12,18 @@ final class CaptionRendererTests: XCTestCase {
         XCTAssertEqual(opaqueRows(image, rows: 0..<250), 0)           // top stays clear
     }
 
+    func testALongWordShrinksToFitInsteadOfWrapping() throws {
+        // A 9:16 crop, the One Word style, and a word too wide for it at full size.
+        let narrow = CGSize(width: 406, height: 720)
+        let style = try XCTUnwrap(CaptionStyle.builtIns.first { $0.name == "One Word" })
+        let long = try XCTUnwrap(CaptionRenderer.textBlock(text: "SUBTITLES.", size: narrow, style: style))
+        let short = try XCTUnwrap(CaptionRenderer.textBlock(text: "SUB", size: narrow, style: style))
+        // One line: the same height as a short word, not two lines' worth.
+        XCTAssertEqual(long.rect.height, short.rect.height, accuracy: short.rect.height * 0.25)
+        // And it stays inside the frame (the block includes room for the outline).
+        XCTAssertLessThanOrEqual(long.rect.width, narrow.width * 1.15)
+    }
+
     func testOverlayShowsCaptionOnlyInItsTimeRange() {
         let overlay = CaptionOverlay()
         overlay.update([Caption(start: 1, end: 2, text: "Hi"), Caption(start: 3, end: 4, text: "  ")], size: size, style: .default)

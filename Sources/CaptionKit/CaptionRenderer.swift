@@ -117,7 +117,15 @@ public enum CaptionRenderer {
     public static func textBlock(text: String, size: CGSize, style: CaptionStyle) -> TextBlock? {
         guard size.width > 0, size.height > 0 else { return nil }
         let text = style.allCaps ? text.uppercased(with: .current) : text
-        let fontSize = min(size.width, size.height) * 0.096 * style.scale
+        var fontSize = min(size.width, size.height) * 0.096 * style.scale
+        // Wrap between words, never inside one: if the longest word (a single word in
+        // one-word display, say, in a narrow 9:16 crop) is wider than the line, shrink the
+        // text until it fits.
+        let available = size.width * 0.9 - (style.box ? fontSize * 0.64 : 0)
+        let widest = text.split(whereSeparator: \.isWhitespace).map {
+            NSAttributedString(string: String($0), attributes: [.font: style.font(size: fontSize)]).size().width
+        }.max() ?? 0
+        if widest > available, widest > 0 { fontSize *= available / widest * 0.97 }
         let para = NSMutableParagraphStyle()
         para.alignment = .center
         para.lineBreakMode = .byWordWrapping

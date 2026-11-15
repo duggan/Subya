@@ -1,43 +1,39 @@
 #!/usr/bin/env python3
-"""Build buddy-biscuit.mp4: Bubble Buddy and the biscuit packet, a demo clip for Subya.
+"""Build subby-wiseguy.mp4: Subby, a deadpan New York wiseguy, talking to camera. A demo clip for Subya.
 
     python3 build.py            # audio -> frames -> mp4, all next to this file
 
-Steps: `say` renders each line; the lines are laid out with pauses into speech.wav; the
-loudness of each 1/30 s drives the mouth; every frame is an SVG snippet (Buddy's shapes
-are the ones in Resources/art/make_icons.py and docs/index.html, at the site's 320x180
-scene size); render.js draws them in headless Chrome; ffmpeg joins frames and speech.
+Steps: the voiced lines (voice/t1.wav…, or VOICE_DIR; `say` if there are none) are laid
+out with pauses into speech.wav; the loudness of each 1/30 s drives the mouth; every frame
+is an SVG snippet (Subby's shapes are the ones in Resources/art/make_icons.py and
+docs/index.html, in a 320x180 scene); render.js draws them in headless Chrome; ffmpeg
+joins frames and speech. OUT=<path> writes the clip somewhere else.
 """
 import json
 import math
 import os
-import random
 import struct
 import subprocess
 import wave
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "buddy-biscuit.mp4")
+OUT = os.environ.get("OUT") or os.path.join(HERE, "subby-wiseguy.mp4")
 BUILD = os.path.join(HERE, "build")
 FPS = 30
 RATE = 44100
-VOICE = "Sandy (English (UK))"
-LEAD, TAIL = 0.7, 0.9
+VOICE = "Daniel"                    # only for `say`, when there are no voiced lines
+LEAD, TAIL = 0.3, 0.6
 # (text, pause after it)
-LINES = [("I'm just going to have one biscuit.", 0.95),
-         ("Just one.", 0.95),
-         ("Maybe two.", 1.15),
-         ("The whole packet is gone.", 0.0)]
+LINES = [("You're watching this on mute, aren't you?", 0.5),
+         ("That's fine. I get it.", 0.5),
+         ("That's why I brought subtitles.", 0.7),
+         ("Capisce?", 0.0)]
 
-INK, PINK, MOUTH, TONGUE = "#1F2329", "#FF5D8F", "#7A1F3D", "#FF9DBB"
-BISCUIT, BISCUIT_DARK = "#F2B45A", "#C98531"
+INK, PINK, MOUTH = "#1F2329", "#FF5D8F", "#7A1F3D"
 BODY = ("M-35,-41 H35 A25,25 0 0 1 60,-16 V16 A25,25 0 0 1 35,41 H-11 L-43,64 L-35,41 "
         "A25,25 0 0 1 -60,16 V-16 A25,25 0 0 1 -35,-41 Z")          # p-round from the site
-HAPPY_MOUTH = "M-17,13 Q0,18 17,13 Q17.4,33.5 0,33.5 Q-17.4,33.5 -17,13 Z"
-BX, BY, BS = 180, 68, 1.05          # Buddy's centre and size in the 320x180 scene
-MOUTH_AT = (BX, BY + 24)            # where biscuits fly to
-SHELF_Y = 112
-SLOT_X0, SLOT_DX, N_BISCUITS = 56, 8.5, 6
+BX, BY, BS = 160, 60, 1.2           # Subby's centre and size in the 320x180 scene: close to camera
+TABLE_Y = 130                       # the table's edge; below it stays plain for captions
 
 
 # ---------------------------------------------------------------- audio
@@ -85,6 +81,24 @@ def make_audio():
     return timings, track
 
 
+def split_at(track, start, end, fallback):
+    """Where the longest pause inside a line starts and ends (the next phrase begins), in
+    seconds; `fallback` (a fraction of the line) twice if it has no pause of 0.1 s or more."""
+    n = RATE // 100
+    quiet = [max(abs(s) for s in track[i:i + n]) < 500 for i in range(int(start * RATE), int(end * RATE) - n, n)]
+    best, run_start = (0, 0, 0), None
+    for i, q in enumerate(quiet + [False]):
+        if q and run_start is None:
+            run_start = i
+        elif not q and run_start is not None:
+            if run_start > 15 and i < len(quiet) - 15:       # not the line's own ends
+                best = max(best, (i - run_start, run_start, i))
+            run_start = None
+    if best[0] < 10:
+        return (start + fallback * (end - start),) * 2
+    return start + best[1] / 100, start + best[2] / 100
+
+
 def mouth_levels(track):
     """How open the mouth is in each frame, 0-1, from the speech's loudness."""
     n = RATE // FPS
@@ -106,212 +120,125 @@ def ease(x):
     return x * x * (3 - 2 * x)
 
 
+def pulse(t, on, off, rise, fall):
+    """0 -> 1 from `on` (taking `rise`), back to 0 from `off` (taking `fall`)."""
+    return ease((t - on) / rise) * (1 - ease((t - off) / fall))
+
+
 def backdrop():
-    """bg-room from the site (wall, floor, framed picture, plant) plus a shelf for the packet."""
-    return f'''<rect width="320" height="180" fill="#7CCBFF"/><rect y="132" width="320" height="48" fill="#4FA3DD"/>
-<rect x="22" y="24" width="64" height="50" rx="4" fill="#FFF6DF" stroke="{INK}" stroke-width="4"/><path d="M30,66 L48,44 L60,58 L68,50 L80,66 Z" fill="#6EE7C8" stroke="{INK}" stroke-width="3" stroke-linejoin="round"/>
-<g stroke="{INK}" stroke-width="4" stroke-linejoin="round"><path d="M262,132 L268,96 H292 L298,132 Z" fill="#FFB400"/><path d="M280,96 C262,74 262,56 272,50 C284,60 284,78 280,96 C294,74 304,70 310,76 C308,88 294,96 280,96" fill="#6EE7C8"/></g>
-<g stroke="{INK}" stroke-width="3" stroke-linejoin="round"><path d="M34,{SHELF_Y + 5} v10 l8,-10 Z M96,{SHELF_Y + 5} v10 l-8,-10 Z" fill="#FFB400"/><rect x="18" y="{SHELF_Y}" width="96" height="6" rx="2" fill="#FFF6DF"/></g>'''
+    """A diner booth at night: dim wall, a pool of lamplight, a window with city lights, the seat back."""
+    lights = "".join(f'<rect x="{x}" y="{y}" width="3" height="3" fill="#FFD466"/>'
+                     for x, y in [(23, 52), (23, 62), (29, 57), (39, 44), (45, 44), (39, 56), (45, 64),
+                                  (56, 60), (62, 54), (62, 66), (56, 70)])
+    return f'''<rect width="320" height="180" fill="#3B2A45"/>
+<circle cx="278" cy="46" r="112" fill="#47314B"/><circle cx="278" cy="46" r="70" fill="#573A50"/>
+<g stroke="{INK}" stroke-width="4" stroke-linejoin="round"><rect x="16" y="24" width="58" height="56" rx="4" fill="#22335C"/></g>
+<path d="M18,80 V50 H34 V80 Z M34,80 V38 H52 V80 Z M52,80 V48 H72 V80 Z" fill="#16213F"/>{lights}
+<g stroke="{INK}" stroke-linejoin="round" fill="none"><path d="M45,24 V80 M16,52 H74" stroke-width="3"/><rect x="16" y="24" width="58" height="56" rx="4" stroke-width="4"/>
+<rect x="11" y="79" width="68" height="6" rx="2" fill="#FFF6DF" stroke-width="3"/></g>
+<g stroke="{INK}" stroke-width="4" stroke-linejoin="round"><rect x="28" y="66" width="264" height="90" rx="14" fill="#A8323F"/>
+<path d="M28,84 H292" fill="none" stroke-width="3"/></g>'''
 
 
-def biscuit_round(x, y, r, angle):
-    dots = "".join(f'<circle cx="{dx}" cy="{dy}" r="0.9" fill="{BISCUIT_DARK}"/>'
-                   for dx, dy in [(-3, -2), (2.5, -3), (0, 1), (-2.5, 3.5), (3.5, 2.5)])
-    return (f'<g transform="translate({x:.2f} {y:.2f}) rotate({angle:.1f}) scale({r / 8:.3f})">'
-            f'<circle r="8" fill="{BISCUIT}" stroke="{INK}" stroke-width="2.6"/>{dots}</g>')
+def foreground():
+    """The lamp over the booth and the table's edge, seen from a little below; plain underneath."""
+    return f'''<g stroke="{INK}" stroke-width="4" stroke-linejoin="round"><path d="M278,0 V16" fill="none" stroke-width="3"/>
+<path d="M262,34 Q264,16 278,16 Q292,16 294,34 Z" fill="#FFB400"/><path d="M271,34 Q278,42 285,34 Z" fill="#FFF6DF" stroke-width="3"/></g>
+<rect y="{TABLE_Y + 4}" width="320" height="{180 - TABLE_Y - 4}" fill="#241A2C"/>
+<rect x="-4" y="{TABLE_Y}" width="328" height="8" rx="3" fill="#E9D9B8" stroke="{INK}" stroke-width="3.5"/>'''
 
 
-def packet(left, wobble=0.0):
-    """The packet on the shelf: a wrapper with a torn end and `left` biscuits standing in a row."""
-    top, bottom = SHELF_Y - 21, SHELF_Y - 1.5
-    out = []
-    if left > 0:
-        for i in range(left):
-            x = SLOT_X0 + SLOT_DX * i
-            out.append(f'<rect x="{x:.1f}" y="{top + 1}" width="7" height="{bottom - top - 1}" rx="3" '
-                       f'fill="{BISCUIT}" stroke="{INK}" stroke-width="2.6"/>')
-        out.append(f'<path d="M26,{top} H52 l4,5 l-4,5 l4,5 l-4,4.5 H26 Q22,{(top + bottom) / 2} 26,{top} Z" '
-                   f'fill="#B79CFF" stroke="{INK}" stroke-width="3" stroke-linejoin="round"/>'
-                   f'<path d="M33,{top + 1.5} V{bottom - 1.5} M41,{top + 1.5} V{bottom - 1.5}" stroke="#7D5BE0" stroke-width="3"/>')
-    else:                                                    # flat, empty wrapper and what's left
-        out.append(f'<g transform="rotate({wobble:.1f} 44 {bottom})"><path d="M24,{bottom} l5,-6 l9,2 l8,-4 l9,3 l8,-2 l5,7 Z" '
-                   f'fill="#B79CFF" stroke="{INK}" stroke-width="3" stroke-linejoin="round"/>'
-                   f'<path d="M36,{bottom - 1} l1,-4 M48,{bottom - 1} l1,-5" stroke="#7D5BE0" stroke-width="2.4" stroke-linecap="round"/></g>')
-        for x, r in [(72, 1.8), (79, 1.2), (86, 2.0), (93, 1.3), (100, 1.6), (66, 1.1)]:
-            out.append(f'<circle cx="{x}" cy="{SHELF_Y - r - 0.6}" r="{r}" fill="{BISCUIT}" stroke="{INK}" stroke-width="1.2"/>')
-    return "".join(out)
-
-
-FACE_CRUMBS = [(-11, 36, 1.8), (13, 35, 1.5), (-24, 27, 1.4), (22, 30, 1.9), (3, 39, 1.3),
-               (-31, 20, 1.2), (30, 22, 1.5), (-17, 33, 1.2), (36, 31, 1.2), (-38, 30, 1.4)]
-
-
-def face(look, level, blink=0.0, glance=(0.0, 0.0), crumbs=0, chew=0.0):
-    """Buddy's face around 0,0. `look` is happy, flat, shifty or shock (the site's f-happy,
-    f-flat, f-pout and f-shock); `level` 0-1 opens the mouth; `blink` 0-1 shuts the eyes."""
+def face(level, lid=0.5, brows=(0.0, 0.0), glance=(0.0, 0.0), pleased=0.0):
+    """Subby's face around 0,0. `level` 0-1 opens the mouth; `lid` is how far the eyelids
+    are down (0.5 half-lidded, 1 shut); `brows` raises the left and right eyebrow, 0-1;
+    `pleased` 0-1 lifts one corner of the shut mouth a little."""
     gx, gy = glance
-    rx, ry = (10, 13.5) if look == "shock" else (8.5, 12.5)
+    rx, ry = 8.5, 12.5
     out = [f'<g fill="{PINK}"><ellipse cx="-39" cy="11.5" rx="9.5" ry="5.7"/><ellipse cx="39" cy="11.5" rx="9.5" ry="5.7"/></g>']
-    lid = 0.55 if look == "flat" else 1.0                    # deadpan: half-shut eyes
-    open_ = max(0.08, (1 - blink) * lid)
-    for x in (-20, 20):
-        ex, ey = x + gx, -6 + gy + (ry * (1 - open_) * 0.5 if look == "flat" else 0)
-        out.append(f'<ellipse cx="{ex:.2f}" cy="{ey:.2f}" rx="{rx}" ry="{ry * open_:.2f}" fill="{INK}"/>')
-        if open_ > 0.4:
-            out.append(f'<circle cx="{ex - 2.3 + gx * 0.2:.2f}" cy="{ey - 4.5 * open_:.2f}" r="{3.3 * min(1, open_ + 0.2):.2f}" fill="#fff"/>'
-                       f'<circle cx="{ex + 2.6:.2f}" cy="{ey + 5.2 * open_:.2f}" r="1.5" fill="#fff"/>')
-    brows = {"flat": "M-29,-21 H-12 M12,-21 H29",
-             "shifty": "M-29,-27 L-13,-24 M13,-27 L29,-24",
-             "shock": "M-31,-27 Q-21,-34 -11,-29 M11,-29 Q21,-34 31,-27"}.get(look)
-    if brows:
-        out.append(f'<path d="{brows}" fill="none" stroke="{INK}" stroke-width="3.6" stroke-linecap="round"/>')
-
-    line = f'fill="none" stroke="{INK}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"'
-    if chew > 0:                                             # mouth shut, munching
-        w = 8 + 2 * chew
-        out.append(f'<path d="M{-w:.1f},{20 - chew:.1f} Q0,{24 + 3 * chew:.1f} {w:.1f},{20 - chew:.1f}" {line}/>')
-    elif look == "happy":
-        if level < 0.12:
-            out.append(f'<path d="M-13,16 Q0,27 13,16" {line}/>')
-        else:
-            k = 0.35 + 0.65 * level
-            out.append(f'<g transform="translate(0 13) scale({0.8 + 0.2 * level:.3f} {k:.3f}) translate(0 -13)">'
-                       f'<clipPath id="m"><path d="{HAPPY_MOUTH}"/></clipPath><path d="{HAPPY_MOUTH}" fill="{MOUTH}"/>'
-                       f'<g clip-path="url(#m)"><ellipse cx="0" cy="33.5" rx="12" ry="7.6" fill="{TONGUE}"/></g></g>'
-                       f'<path d="{HAPPY_MOUTH}" transform="translate(0 13) scale({0.8 + 0.2 * level:.3f} {k:.3f}) translate(0 -13)" '
-                       f'fill="none" stroke="{INK}" stroke-width="3.8" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>')
-    else:
-        shut = {"flat": "M-10,20 H10", "shifty": "M-7,22 Q0,16.5 7,22", "shock": None}[look]
-        w, h, y = {"flat": (7.5, 6, 21.5), "shifty": (6, 6.5, 21.5), "shock": (7.5, 10.5, 23)}[look]
-        floor = 0.45 if look == "shock" else 0.0             # shocked: never quite shut
-        if level < 0.12 and shut:
-            out.append(f'<path d="{shut}" {line}/>')
-        else:
-            k = floor + (1 - floor) * level
-            out.append(f'<ellipse cx="0" cy="{y}" rx="{w * (0.75 + 0.25 * k):.2f}" ry="{max(2.2, h * k):.2f}" '
-                       f'fill="{MOUTH}" stroke="{INK}" stroke-width="3.4"/>')
-    for x, y, r in FACE_CRUMBS[:crumbs]:
-        out.append(f'<circle cx="{x}" cy="{y}" r="{r}" fill="{BISCUIT}" stroke="{INK}" stroke-width="1.1"/>')
-    return "".join(out)
+    for side, x in (("l", -20), ("r", 20)):
+        ex, ey = x + gx, -6 + gy
+        y = ey - ry + 2 * ry * min(lid, 1.0)                 # the eyelid's edge
+        whole = f'<ellipse cx="{ex:.2f}" cy="{ey:.2f}" rx="{rx}" ry="{ry}"'
+        if lid < 0.88:                                       # the eye below a heavy, flat lid
+            out.append(f'<clipPath id="eye{side}"><rect x="{ex - 12:.2f}" y="{y:.2f}" width="24" height="30"/></clipPath>'
+                       f'<g clip-path="url(#eye{side})">{whole} fill="{INK}"/>'
+                       f'<circle cx="{ex - 2.3 + gx * 0.2:.2f}" cy="{max(ey - 4.5, y + 4.4):.2f}" r="3.1" fill="#fff"/>'
+                       f'<circle cx="{ex + 2.8:.2f}" cy="{ey + 6.4:.2f}" r="1.5" fill="#fff"/></g>')
+            w = rx * math.sqrt(max(0.0, 1 - ((y - ey) / ry) ** 2)) + 0.6
+            out.append(f'<path d="M{ex - w:.2f},{y:.2f} H{ex + w:.2f}" stroke="{INK}" stroke-width="3.6" stroke-linecap="round"/>')
+        else:                                                # shut
+            out.append(f'<path d="M{ex - rx - 0.5:.2f},{ey + 1:.2f} Q{ex:.2f},{ey + 5:.2f} {ex + rx + 0.5:.2f},{ey + 1:.2f}" '
+                       f'fill="none" stroke="{INK}" stroke-width="3.6" stroke-linecap="round"/>')
+    for (x0, x1), r in zip(((-31, -11), (11, 31)), brows):
+        y = -18 - 9 * r
+        out.append(f'<path d="M{x0},{y:.2f} Q{(x0 + x1) / 2},{y - 4.5 * r:.2f} {x1},{y:.2f}" fill="none" stroke="{INK}" '
+                   f'stroke-width="4" stroke-linecap="round"/>')
+    if level < 0.12:                                         # shut: a flat line, a shade off-centre
+        out.append(f'<path d="M-8,22 H7 Q11,22 12.5,{22 - 2.6 * pleased:.2f}" fill="none" stroke="{INK}" stroke-width="3.8" '
+                   f'stroke-linecap="round" stroke-linejoin="round"/>')
+    else:                                                    # talking out of the side of his mouth
+        out.append(f'<ellipse cx="3" cy="22.5" rx="{7.5 * (0.75 + 0.25 * level):.2f}" ry="{max(2.2, 6.2 * level):.2f}" '
+                   f'fill="{MOUTH}" stroke="{INK}" stroke-width="3.4"/>')
+    return f'<g transform="translate(0 -2)">{"".join(out)}</g>'   # features a touch high: seen from below
 
 
-def buddy(dx, dy, tilt, sx, sy, face_svg):
+def subby(dx, dy, tilt, sx, sy, zoom, face_svg):
     foot = 41 * BS
     return (f'<g transform="translate({BX + dx:.2f} {BY + dy:.2f}) translate(0 {foot:.2f}) scale({sx:.4f} {sy:.4f}) '
-            f'translate(0 {-foot:.2f}) rotate({tilt:.2f}) scale({BS})">'
+            f'translate(0 {-foot:.2f}) rotate({tilt:.2f}) scale({BS * zoom:.4f})">'
             f'<g stroke="{INK}" stroke-width="4" stroke-linejoin="round"><path d="{BODY}" transform="translate(4.5 5)" fill="{PINK}"/>'
             f'<path d="{BODY}" fill="#fff"/></g>{face_svg}</g>')
 
 
-# ---------------------------------------------------------------- the story
+# ---------------------------------------------------------------- the acting
 
-def make_frames(timings, levels):
+def make_frames(timings, levels, track):
     (_, a1, b1), (_, a2, b2), (_, a3, b3), (_, a4, b4) = timings
     total = len(levels) / FPS
-    FLIGHT = 0.34
-    # Biscuits leave the packet from the open end: (take-off time, slot it leaves).
-    bites = [(b1 + 0.22, 5)]                                             # "one"
-    bites += [(b2 + 0.18, 4), (b2 + 0.40, 3)]                            # "just one"... two more
-    bites += [(b3 + 0.10 + 0.17 * i, 2 - i) for i in range(3)]           # and the rest
-    gone = bites[-1][0] + FLIGHT                                         # the moment it's all gone
-    blinks = [0.3, a2 - 0.3, b3 + 0.05, b4 + 0.35]
-    rng = random.Random(7)
-    sprays = []                                                          # crumbs flying off each bite
-    for k, (t0, _) in enumerate(bites):
-        for _ in range(4 if k < 3 else 7):
-            sprays.append((t0 + FLIGHT, rng.uniform(-38, 38), rng.uniform(-50, -12), rng.uniform(1.0, 2.0)))
+    _, tag = split_at(track, a1, b1, 0.7)                 # "…aren't you?"
+    fine_end, second = split_at(track, a2, b2, 0.5)       # "That's fine." | "I get it."
+    word = a3 + 0.55 * (b3 - a3)                          # "subtitles"
+    blinks = [a3 - 0.3, a4 - 0.5]                         # few: he stares
 
     frames = []
     for f in range(len(levels)):
         t = f / FPS
         level = levels[f]
-        eaten = sum(1 for t0, _ in bites if t >= t0)
-        landed = [t0 + FLIGHT for t0, _ in bites if t >= t0 + FLIGHT]
-        chewing = bool(landed) and t - landed[-1] < 0.42 and t < gone + 0.1
-        chew = 0.5 + 0.5 * math.sin((t - landed[-1]) * 2 * math.pi * 5.5) if chewing else 0.0
+        raise_ = pulse(t, tag - 0.1, b1 + 0.3, 0.5, 0.3)             # a slow eyebrow on "aren't you?"
+        shrug = pulse(t, a2 - 0.08, min(fine_end, a2 + 0.75) - 0.1, 0.2, 0.3)         # "That's fine."
+        nod2 = pulse(t, second + 0.05, second + 0.22, 0.12, 0.22)    # "I get it."
+        lean = pulse(t, word - 0.15, b3 + 0.45, 0.3, 0.4)            # in on "subtitles"
+        aside = pulse(t, b3 + 0.02, b3 + 0.3, 0.1, 0.12)             # a glance down at them
+        cock = ease((t - a4 + 0.3) / 0.4)                            # head to one side for "Capisce?"
+        ask = pulse(t, a4 - 0.1, b4 + 0.2, 0.3, 0.45)
+        nod4 = pulse(t, b4 + 0.05, b4 + 0.3, 0.3, 0.4)               # one slow nod, then hold
+        still = 1 - ease((t - b4) / 0.3)
 
-        # which face
-        if t < a2 - 0.42:
-            look = "happy"
-        elif t < b2 + 0.12:
-            look = "flat"
-        elif t < a3 - 0.3:
-            look = "happy"
-        elif t < gone - 0.05:
-            look = "shifty"
-        else:
-            look = "shock"
+        lid = 0.5 - 0.1 * lean + 0.06 * cock
+        lid += (0.95 - lid) * shrug                                  # eyes shut through the shrug
+        for tb in blinks:
+            if 0 <= t - tb <= 0.2:
+                lid += (1.0 - lid) * math.sin((t - tb) / 0.2 * math.pi)
+        brows = (0.55 * shrug + 0.15 * raise_, 0.55 * shrug + raise_ + 0.75 * ask)
+        glance = (3.2 * aside, 3.4 * aside)
 
-        # where the eyes go
-        glance = (0.0, 0.0)
-        for t0, _ in bites:                                              # watch each biscuit come in
-            if t0 - 0.2 < t < t0 + FLIGHT:
-                glance = (-4.0 * (1 - ease((t - t0) / FLIGHT)), 1.0)
-        if look == "shifty" and t < b3 + 0.05:
-            glance = (4.5 * ease((t - (a3 - 0.3)) / 0.2), -0.5)          # looking anywhere but the packet
-        if look == "shock" and b4 + 0.25 < t:
-            glance = (-4.5 * ease((t - b4 - 0.25) / 0.15), 1.5)          # ...and back at the scene of the crime
-        blink = max((1 - abs((t - tb) / 0.07 - 1) for tb in blinks if 0 <= t - tb <= 0.14), default=0.0)
-
-        incoming = any(t0 + FLIGHT * 0.45 < t < t0 + FLIGHT for t0, _ in bites)
-        if incoming:
-            level, chew = 1.0, 0.0
-            if look in ("flat", "shifty"):
-                look = "happy"
-
-        # body: idle bob, a dip into each line, a munch wobble, a jump when it sinks in
-        dy = 1.6 * math.sin(t * 2 * math.pi * 0.55)
-        sy = 1 + 0.035 * level
-        tilt = -4 + 1.2 * math.sin(t * 2 * math.pi * 0.31)
-        for a in (a1, a2, a3, a4):
-            x = (t - a + 0.08) / 0.3
-            if 0 <= x <= 1:
-                sy *= 1 - 0.07 * math.sin(x * math.pi) * (1 - x)
-        if t < 0.5:                                                      # hello hop
-            x = t / 0.5
-            dy -= 9 * math.sin(x * math.pi)
-        if chewing:
-            sy *= 1 - 0.035 * chew
-        x = (t - gone) / 0.36
-        if 0 <= x <= 1:
-            dy -= 13 * math.sin(x * math.pi)
-            sy *= 1 + 0.07 * math.sin(x * math.pi)
-        if look == "flat":
-            tilt = -1 + 2.5 * (1 - ease((t - a2 + 0.42) / 0.2))
-        if look == "shifty":
-            tilt = 3
-        if look == "shock":
-            tilt = -6 + 2.5 * math.sin((t - gone) * 2 * math.pi * 9) * math.exp(-(t - gone) * 6)
-        sx = 1 + (1 - sy) * 0.6
-
-        crumbs = {0: 0, 1: 2, 2: 3, 3: 5}.get(len(landed), 5 if t < gone else 10)
-        parts = [backdrop(), packet(N_BISCUITS - eaten, wobble=-6 * math.exp(-(t - gone) * 5) * math.cos((t - gone) * 22) if t > gone else 0)]
-        parts.append(buddy(0, dy, tilt, sx, sy, face(look, level, blink, glance, crumbs, chew)))
-        for t0, slot in bites:                                           # biscuits in the air
-            x = (t - t0) / FLIGHT
-            if 0 <= x < 1:
-                x0, y0 = SLOT_X0 + SLOT_DX * slot + 3.5, SHELF_Y - 12
-                px = x0 + (MOUTH_AT[0] - x0) * x
-                py = y0 + (MOUTH_AT[1] + dy - y0) * x - 46 * math.sin(x * math.pi)
-                parts.append(biscuit_round(px, py, 8.5 - 2.5 * x * x, 540 * x))
-        for t0, vx, vy, r in sprays:                                     # crumbs, gone before the caption area
-            x = t - t0
-            if 0 <= x < 0.55:
-                px, py = MOUTH_AT[0] + vx * x, MOUTH_AT[1] + vy * x + 170 * x * x
-                if py < 128:
-                    parts.append(f'<circle cx="{px:.1f}" cy="{py:.1f}" r="{r:.1f}" fill="{BISCUIT}" stroke="{INK}" '
-                                 f'stroke-width="1" opacity="{1 - ease((x - 0.35) / 0.2):.2f}"/>')
+        dy = 0.7 * math.sin(t * 2 * math.pi * 0.4) * still + 2.4 * nod2 + 2.2 * lean + 3.6 * nod4
+        tilt = -2 + 0.5 * math.sin(t * 2 * math.pi * 0.23) * still + 2.5 * raise_ - 5.5 * shrug + 5 * cock
+        sy = (1 + 0.02 * level) * (1 - 0.065 * shrug) * (1 - 0.02 * nod4)
+        sx = 1 + (1 - sy) * 0.7
+        parts = [backdrop(), subby(0, dy, tilt, sx, sy, 1 + 0.07 * lean,
+                                   face(level, lid, brows, glance, pleased=0.7 * lean)), foreground()]
         frames.append("".join(parts))
-    return frames, {"bites": [round(b[0], 2) for b in bites], "gone": round(gone, 2), "total": round(total, 2)}
+    return frames, {"arent_you": round(tag, 2), "i_get_it": round(second, 2), "subtitles": round(word, 2), "total": round(total, 2)}
 
 
 def main():
     timings, track = make_audio()
-    frames, notes = make_frames(timings, mouth_levels(track))
+    frames, notes = make_frames(timings, mouth_levels(track), track)
     with open(os.path.join(BUILD, "frames.json"), "w") as f:
         json.dump(frames, f)
     with open(os.path.join(BUILD, "timings.json"), "w") as f:
-        json.dump({"voice": VOICE, "lines": [{"text": t, "start": round(a, 2), "end": round(b, 2)} for t, a, b in timings], **notes}, f, indent=1)
+        json.dump({"lines": [{"text": t, "start": round(a, 2), "end": round(b, 2)} for t, a, b in timings], **notes}, f, indent=1)
     print(open(os.path.join(BUILD, "timings.json")).read())
     run("node", os.path.join(HERE, "render.js"), os.path.join(BUILD, "frames.json"), os.path.join(BUILD, "frames"))
     run("ffmpeg", "-v", "error", "-y", "-framerate", str(FPS), "-i", os.path.join(BUILD, "frames", "%04d.png"),

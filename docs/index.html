@@ -424,8 +424,8 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
                alt="Subya's window: a video preview with a burned-in caption, a filmstrip timeline with caption blocks, and the list of caption lines.">
           ============================================================
         -->
-        <div class="win" id="heroWin" role="img" aria-label="A drawing of Subya's window. Bubble Buddy, a white speech-bubble character with a pink sticker shadow and a big smile, is on screen with a caption popping in one word at a time. Under the video is a filmstrip timeline with three caption blocks, and beside it the list of caption lines.">
-          <div class="win-bar" aria-hidden="true"><i></i><i></i><i></i><span>biscuits.mp4</span></div>
+        <div class="win" id="heroWin" role="img" aria-label="A drawing of Subya's window. Bubble Buddy, a white speech-bubble character with a pink sticker shadow and a deadpan look, is on screen with a caption popping in one word at a time. Under the video is a filmstrip timeline with three caption blocks, and beside it the list of caption lines.">
+          <div class="win-bar" aria-hidden="true"><i></i><i></i><i></i><span>subby.mp4</span></div>
           <div class="win-body" aria-hidden="true">
             <div class="win-left">
               <div class="preview">
@@ -433,11 +433,11 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
                   <use href="#bg-room"/>
                   <g transform="translate(160 57) rotate(-4)">
                     <use href="#b-round"/>
-                    <use class="face on" href="#f-happy"/>
+                    <use class="face on" href="#f-flat"/>
+                    <use class="face" href="#f-sweet"/>
                     <use class="face" href="#f-flat"/>
-                    <g class="face"><use href="#f-sweet"/><g fill="#C98A3C" stroke="#1F2329" stroke-width="1.2"><circle cx="-13" cy="23" r="2.2"/><circle cx="12" cy="25" r="1.8"/><circle cx="16" cy="18" r="1.5"/><circle cx="-6" cy="29" r="1.5"/></g></g>
                   </g>
-                  <text id="heroWord" class="cap c-hero" x="160" y="166">BISCUIT</text>
+                  <text id="heroWord" class="cap c-hero" x="160" y="166">MUTE.</text>
                 </svg>
               </div>
               <div class="transport">
@@ -447,24 +447,24 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
                 <span class="pill">&minus; &#9135;&#9135;&#9679;&#9135; +</span>
               </div>
               <div class="track">
-                <span class="blk on" style="left:4.5%;width:32%">I'll just have one biscuit.</span>
-                <span class="blk" style="left:42.4%;width:13.6%">One.</span>
-                <span class="blk" style="left:62.1%;width:30.3%">The whole packet is gone.</span>
+                <span class="blk on" style="left:4.5%;width:32%">You're watching on mute.</span>
+                <span class="blk" style="left:42.4%;width:13.6%">I get it.</span>
+                <span class="blk" style="left:62.1%;width:30.3%">Capisce?</span>
                 <span class="playhead" id="heroHead"></span>
               </div>
             </div>
             <div class="win-right">
               <div class="stylebar"><span>Meme &#9662;</span><span>Bottom</span><span>AA</span><span class="lit">One word</span></div>
               <ol class="rows">
-                <li class="on"><time>0:00.3</time><b>I'll just have one biscuit.</b></li>
-                <li><time>0:02.8</time><b>One.</b></li>
-                <li><time>0:04.1</time><b>The whole <u>packet</u> is gone.</b></li>
+                <li class="on"><time>0:00.3</time><b>You're watching on mute.</b></li>
+                <li><time>0:02.8</time><b>I get it.</b></li>
+                <li><time>0:04.1</time><b><u>Capish</u>.</b></li>
               </ol>
               <div class="exportbar"><span>Export&hellip;</span></div>
             </div>
           </div>
         </div>
-        <figcaption>An artist's impression. The real thing has fewer biscuits.</figcaption>
+        <figcaption>An artist's impression. <a href="#demo">The real thing is below.</a></figcaption>
       </figure>
     </div>
   </div>
@@ -509,7 +509,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
           <path d="M142,56 V74" stroke="#1F2329" stroke-width="3.5" stroke-linecap="round"/>
         </svg>
         <h3>Fix</h3>
-        <p>It heard &ldquo;biscuit&rdquo; as &ldquo;brisket&rdquo;? Fix it in the list. The preview updates as you type, and it's exactly what gets exported.</p>
+        <p>It heard &ldquo;capisce&rdquo; as &ldquo;capish&rdquo;? Fix it in the list. The preview updates as you type, and it's exactly what gets exported.</p>
       </li>
       <li class="sticker">
         <svg viewBox="0 0 240 130" aria-hidden="true">
@@ -528,7 +528,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
         <source src="assets/demo.mp4" type="video/mp4">
         <a href="assets/demo.mp4">Watch the demo video</a>
       </video>
-      <figcaption id="demo-cap">The real thing, start to finish: a clip goes in and gets transcribed, a line gets a fix, then Meme style, one word at a time, the captions slide down, a 9:16 crop, and export. Sound on for Bubble Buddy.</figcaption>
+      <figcaption id="demo-cap">The real thing: a clip goes in and gets transcribed, &ldquo;capish&rdquo; gets fixed, then Meme style, one word at a time, the captions slide down, a 9:16 crop, and export. Sound on.</figcaption>
     </figure>
   </div>
 </section>
@@ -830,9 +830,9 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
   if (win) {
     var LENGTH = 6.6;
     var captions = [
-      { start: 0.3, end: 2.4, words: ["I'LL", "JUST", "HAVE", "ONE", "BISCUIT"] },
-      { start: 2.8, end: 3.7, words: ["ONE."] },
-      { start: 4.1, end: 6.1, words: ["THE", "WHOLE", "PACKET", "IS", "GONE"] }
+      { start: 0.3, end: 2.4, words: ["YOU'RE", "WATCHING", "ON", "MUTE."] },
+      { start: 2.8, end: 3.7, words: ["I", "GET", "IT."] },
+      { start: 4.1, end: 6.1, words: ["CAPISCE?"] }
     ];
     var word = document.getElementById("heroWord"), head = document.getElementById("heroHead"),
         clock = document.getElementById("heroTime"), rows = win.querySelectorAll(".rows li"),
