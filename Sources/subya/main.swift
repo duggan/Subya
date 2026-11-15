@@ -14,6 +14,7 @@ let usage = """
                       [--scale <n>] [--words|--lines] [--crop <aspect>] [--trim <from-to>]
                       [--small]
            subya styles
+           subya --help
 
     transcribe  Print the captions Subya would make (as SRT with --srt).
     burn        Burn captions into a copy of the video. Uses --captions if given
@@ -149,6 +150,9 @@ do {
         for style in styles {
             print("\(style.name)\(style.isBuiltIn ? "" : "  (yours)")  –  \(style.fontDisplayName)")
         }
+
+    case "help", "--help", "-h":
+        print(usage)
 
     default:
         fail(usage)

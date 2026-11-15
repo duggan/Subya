@@ -14,6 +14,9 @@ BUILD_CONFIG ?= release
 ARCHFLAGS    ?= --arch arm64 --arch x86_64
 APP_BUNDLE   := build/$(APP_NAME).app
 CONTENTS     := $(APP_BUNDLE)/Contents
+# The `subya` command-line tool ships inside the app. Not in Contents/MacOS: on a
+# case-insensitive disk `subya` and the app's `Subya` would be the same file.
+CLI          := $(CONTENTS)/Helpers/subya
 DMG          := build/$(APP_NAME).dmg
 ZIP          := build/$(APP_NAME)-notarize.zip
 
@@ -40,19 +43,22 @@ all: sign ## Build, bundle, and sign (default)
 build: ## Compile the universal (arm64+x86_64) binaries with SwiftPM
 	swift build -c $(BUILD_CONFIG) $(ARCHFLAGS)
 
-bundle: build ## Assemble the .app bundle from the built binary
+bundle: build ## Assemble the .app bundle from the built binaries (app + CLI)
 	@set -e; \
 	BIN="$$(swift build -c $(BUILD_CONFIG) $(ARCHFLAGS) --show-bin-path)"; \
 	echo "Using bin path: $$BIN"; \
 	rm -rf "$(APP_BUNDLE)"; \
-	mkdir -p "$(CONTENTS)/MacOS" "$(CONTENTS)/Resources"; \
+	mkdir -p "$(CONTENTS)/MacOS" "$(CONTENTS)/Helpers" "$(CONTENTS)/Resources"; \
 	cp "$$BIN/$(APP_NAME)App" "$(CONTENTS)/MacOS/$(APP_NAME)"; \
+	cp "$$BIN/subya" "$(CLI)"; \
 	cp Resources/App-Info.plist "$(CONTENTS)/Info.plist"; \
 	if [ -f "$(APP_ICON)" ]; then cp "$(APP_ICON)" "$(CONTENTS)/Resources/"; \
 	else echo "note: $(APP_ICON) not found; bundling without an app icon"; fi; \
 	echo "Assembled $(APP_BUNDLE)"
 
-sign: bundle ## Code-sign with Hardened Runtime and verify
+sign: bundle ## Code-sign the CLI, then the app, with Hardened Runtime and verify
+	codesign --force --options runtime --timestamp \
+	  --sign "$(SIGN_ID)" --identifier "$(APP_ID).cli" "$(CLI)"
 	codesign --force --options runtime --timestamp \
 	  --sign "$(SIGN_ID)" --entitlements Resources/App.entitlements \
 	  --identifier "$(APP_ID)" "$(APP_BUNDLE)"

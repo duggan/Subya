@@ -13,6 +13,9 @@ struct SubyaApp: App {
         }
         .windowResizability(.contentMinSize)
         .commands {
+            CommandGroup(after: .appSettings) {
+                Button("Install Command-Line Tool…") { CommandLineTool.install() }
+            }
             CommandGroup(replacing: .newItem) {
                 Button("Open Video…") { model.chooseFile() }.keyboardShortcut("o")
             }

@@ -708,19 +708,16 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
       <h2 id="cli-h" class="display">Also speaks Terminal.</h2>
       <p>The <code>subya</code> command-line tool does the same job without the window: transcribe to an SRT file, fix it in any editor, then burn it in. Handy for scripting a batch of clips.</p>
       <p>It takes the same styles (including your own), plus <code>--trim</code>, <code>--crop</code>, <code>--words</code> and <code>--small</code>.</p>
-      <p>It isn't in the download yet: it runs from the source with Swift (Xcode 26). <a href="https://github.com/duggan/Subya#command-line">Details in the README.</a></p>
+      <p>It comes inside the app: choose <b>Subya › Install Command-Line Tool…</b> once and <code>subya</code> works in Terminal, updating along with the app. <a href="https://github.com/duggan/Subya#command-line">All the options are in the README.</a></p>
     </div>
     <div class="term">
       <div class="win-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-<pre tabindex="0" aria-label="Example subya commands"><code><span class="c"># get the source</span>
-<span class="p">$</span> git clone https://github.com/duggan/Subya &amp;&amp; cd Subya
-
-<span class="c"># transcribe, tidy up the words, burn them in</span>
-<span class="p">$</span> swift run subya transcribe clip.mp4 <span class="f">--srt</span> &gt; clip.srt
-<span class="p">$</span> swift run subya burn clip.mp4 clip-captioned.mp4 <span class="f">--captions</span> clip.srt
+<pre tabindex="0" aria-label="Example subya commands"><code><span class="c"># transcribe, tidy up the words, burn them in</span>
+<span class="p">$</span> subya transcribe clip.mp4 <span class="f">--srt</span> &gt; clip.srt
+<span class="p">$</span> subya burn clip.mp4 clip-captioned.mp4 <span class="f">--captions</span> clip.srt
 
 <span class="c"># or the lot at once: 15 seconds, vertical, Meme style, small</span>
-<span class="p">$</span> swift run subya burn clip.mp4 out.mp4 \
+<span class="p">$</span> subya burn clip.mp4 out.mp4 \
     <span class="f">--style</span> Meme <span class="f">--trim</span> 1:05-1:20 <span class="f">--crop</span> 9:16 <span class="f">--small</span></code></pre>
     </div>
   </div>

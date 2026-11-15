@@ -111,13 +111,19 @@ permissions.
 
 ## Command line
 
-There's a `subya` command-line tool too, built from source:
+Subya comes with a `subya` command-line tool for scripting. To put it on your path,
+choose **Subya › Install Command-Line Tool…** once (it asks for an administrator
+password and links `/usr/local/bin/subya` to the tool inside the app, so it updates
+with the app). Or link it yourself:
+`sudo ln -sf /Applications/Subya.app/Contents/Helpers/subya /usr/local/bin/subya`.
 
 ```sh
-swift run subya transcribe clip.mp4 --srt > clip.srt     # edit clip.srt if you like
-swift run subya burn clip.mp4 out.mp4 --captions clip.srt --style Meme
-swift run subya burn clip.mp4 out.mp4 --trim 1:05-1:20 --crop 9:16 --words --small
+subya transcribe clip.mp4 --srt > clip.srt     # edit clip.srt if you like
+subya burn clip.mp4 out.mp4 --captions clip.srt --style Meme
+subya burn clip.mp4 out.mp4 --trim 1:05-1:20 --crop 9:16 --words --small
 ```
+
+From a source checkout, `swift run subya …` does the same.
 
 Without `--captions`, `burn` transcribes first.
 

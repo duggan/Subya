@@ -216,7 +216,13 @@ playful rather than slick.
     Settings with `--settings`. The snapshot draws native controls poorly and
     shows the layout, not the video (frames come out black), and needs no
     screen-recording permission.
-- `Sources/subya/`: a developer CLI. `subya transcribe <video> [--srt]` prints
+- `Sources/subya/`: the CLI, shipped inside the app at `Contents/Helpers/subya` (not
+  `Contents/MacOS`, where `subya` and `Subya` would collide on a case-insensitive
+  disk), signed separately as `ie.duggan.Subya.cli` before the app.
+  `CommandLineTool.swift` in the app adds Subya › Install Command-Line Tool…, which
+  links `/usr/local/bin/subya` to it via `osascript … with administrator privileges`
+  (a separate process, so the hardened runtime needs no Apple Events entitlement); the
+  path goes in as an AppleScript `quoted form`. `subya --help` prints the usage. `subya transcribe <video> [--srt]` prints
   the captions; `subya burn <video> <out.mp4> [--captions file.srt]` exports, with
   `--style <name>` (built-in or the user's own), `--position` (top, middle, bottom,
   or 0–1), `--caps`/`--no-caps`,
@@ -228,7 +234,7 @@ playful rather than slick.
   export naming and sizes, trims (edges, parsing, missing parts, merging), crop presets, moves, resizes and pixel rects, and the renderer (positions, colours, outline, box, caps,
   every built-in, style changes) (`swift test`). They don't need a speech model.
 - `Makefile`: `make run`, `test`, `icons`, `dmg` and `release`. It builds a
-  universal app with a Developer ID signature and hardened runtime, not sandboxed,
+  universal app (with the CLI in `Contents/Helpers`) with a Developer ID signature and hardened runtime, not sandboxed,
   with bundle ID `ie.duggan.Subya`. Notarization uses the keychain profile
   `subya` (see `make notary-setup`). DMGs need `create-dmg`.
 - `.github/workflows/release.yml` runs `make release` on GitHub, signing with a
