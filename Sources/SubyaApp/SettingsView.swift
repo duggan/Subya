@@ -238,9 +238,19 @@ private struct StyleEditor: View {
                         }
                     }
                     Picker("Position", selection: $style.position) {
-                        ForEach(CaptionStyle.Position.allCases) { Text($0.displayName).tag($0) }
+                        ForEach(CaptionStyle.Position.allCases) { Text($0.displayName).tag(Optional($0)) }
                     }
                     .pickerStyle(.segmented)
+                    LabeledContent("Height") {
+                        Slider(value: Binding(get: { style.vertical }, set: { style.vertical = CaptionStyle.snapped($0, threshold: 0.02) }),
+                               in: 0...1) {
+                            Text("Height")
+                        } minimumValueLabel: {
+                            Text("Top").font(.caption)
+                        } maximumValueLabel: {
+                            Text("Bottom").font(.caption)
+                        }
+                    }
                     LabeledContent("Size") {
                         Slider(value: $style.scale, in: 0.6...1.8)
                     }

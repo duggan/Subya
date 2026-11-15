@@ -21,8 +21,8 @@ playful rather than slick.
   style is a name, a font (any PostScript name, or `system-rounded` for SF Rounded),
   text colour, an outline (colour and width as a fraction of the font size, 0 for
   none, with round joins or Impact grows spikes), an optional soft shadow, an optional
-  rounded box behind the text (colour with opacity), a position (top, middle or
-  bottom, 7% margin), a size, all caps, and `display`: whole lines (default) or one
+  rounded box behind the text (colour with opacity), a vertical position, a size,
+  all caps, and `display`: whole lines (default) or one
   word at a time. Text is centred and wraps at 90% of the width. Font size is 9.6% of the frame's shorter side times `scale`. Eight built-ins
   (Classic, Meme, Rounded, Marker, Typewriter, Poster, Boxed, Highlight) have fixed
   UUIDs (`5B0BA000-…-00000000000N`) and per-face scales so they look the same size.
@@ -38,8 +38,15 @@ playful rather than slick.
   times; retiming an edge stretches them; `setWordStart` retimes one word. `CaptionOverlay` then draws only the
   current word (cached per word). The built-in One Word style (SF Rounded, caps,
   middle, large) uses it, and the main window has a quick toggle.
+- **Vertical position** (`CaptionStyle.vertical`): 0 is the Top position and 1 the
+  Bottom one (each with a 7% margin from the frame's edge), interpolated in between;
+  0.5 is exactly Middle for any text height. `position` is a computed view of it:
+  the snap point it's at, or nil in between (pickers then show nothing selected).
+  `CaptionStyle.snapped` pulls values within 0.04 onto Top, Middle or Bottom. Styles
+  saved with only `position` still load, and `position` is still written.
 - **Style choice in the main window** (`AppModel.StyleChoice`, saved as `styleChoice`):
-  the chosen style's id plus quick adjustments (position, size, caps, one word). Picking a style
+  the chosen style's id plus quick adjustments (vertical position, size, caps, one
+  word). Picking a style
   resets them to the style's own. Editing the chosen style in Settings shows at once
   (its values replace the adjustments); deleting it falls back to Classic.
 - **Grouping** (`Chunker`): a new caption starts after a pause, after a word ending in
@@ -50,11 +57,21 @@ playful rather than slick.
   replacing edits, after asking).
 - **The preview is the export.** The player and the exporter share one
   `AVVideoComposition` whose Core Image handler draws the current caption from a
-  `CaptionOverlay`, which renders each caption image on first use and caches it by
-  text, frame size and style. Edits update the overlay; the paused frame is redrawn
+  `CaptionOverlay`. Captions are rendered tightly around the text
+  (`CaptionRenderer.textBlock`: the image, its rect in the frame, and how far it
+  travels from the Top position to the Bottom one) on first use and cached by text,
+  frame size and look, without the vertical position: moving captions up or down
+  just offsets the cached image. Edits update the overlay; the paused frame is redrawn
   by reassigning the item's `videoComposition`. Seeking to the current time does
   not redraw (AVPlayer treats it as a no-op), which made the preview lag behind
   style changes.
+- **Responsiveness** (`AppModel`): seeks chase (one in flight; when it lands, jump to
+  the latest target), and while one is in flight the time observer doesn't move the
+  playhead back. Redraws of the paused frame are coalesced to one per run-loop turn
+  and skipped when a seek will redraw anyway. `currentTime` changes 30 times a
+  second, so only `TransportBar` and `TimelinePlayhead` read it; everything else
+  reads `currentCaptionID` and `currentWordIndex`, which are assigned only when they
+  change (observers fire on every set). Keep it that way when adding views.
 - The source video is never modified. Export uses `AVAssetExportPresetHighestQuality`
   (H.264, fast start) with its own `CaptionOverlay` at the export's frame size. Where
   it goes is a setting: next to the original (default), a chosen folder, or ask.
@@ -107,9 +124,18 @@ playful rather than slick.
     size) above the editable caption list, and the
     bottom bar. "+ Line" in the transport bar and Captions › Add Line at Playhead (⌘N)
     add a line; the new row scrolls into view and its text field takes focus.
-  - `CaptionTimeline.swift`: the track under the video. One block per caption; drag
-    a block to move it, its edges to retime it, click it to jump there and focus its
-    text, click or drag the empty track to scrub. While dragging, the preview seeks
+  - `CaptionTimeline.swift`: the track under the video, modelled on Photos' trim bar:
+    a filmstrip (`Filmstrip`: `AVAssetImageGenerator` frames made only for the visible
+    tiles, with time tolerance for speed, the newest request cancelling older ones,
+    and the nearest made frame standing in meanwhile), see-through caption blocks, and
+    a white playhead with a knob. Clicking a caption selects it
+    (`AppModel.selectedCaptionID`): a yellow frame with chevron grips; other blocks'
+    edges are invisible but still draggable. Drag a block to move it, its edges to
+    retime it, click it to jump there and focus its text, click or drag the filmstrip
+    or ruler to scrub. Drags are measured in the timeline's named coordinate space
+    ("timeline"), not the dragged view's: the view moves as the caption changes, so
+    local coordinates made grips lag behind the pointer (each step partly undid the
+    last). The crop editor's drags use its "crop" space for the same reason. While dragging, the preview seeks
     to the edge being moved (the end edge shows the caption's last frame). In one-word
     display, blocks split into their words (labels when there's room): drag a divider
     to change when that word appears (`setWordStart`, which first fixes spread-out
@@ -128,11 +154,22 @@ playful rather than slick.
     custom styles with +/−, and an editor with a live preview on a stand-in frame;
     built-ins are read-only ("Duplicate to Edit"). The font picker is family then
     face; switching family picks its heaviest face.
+  - `VideoControls.swift`: caption placement, drawn on the preview when not cropping:
+    drag the band where the caption sits, or the chunky yellow handle on the position
+    track at the right edge (shown on hover), up or down, snapping at Top, Middle and
+    Bottom. Drags are measured in the "video" coordinate space. While dragging
+    (`AppModel.isPlacingCaption`), the video shows no captions and the view draws the
+    caption's `TextBlock` (rendered once at the start) at the new place, which is
+    smooth where redrawing the video each step was jerky; the video takes over on
+    release, with the copy kept up 250 ms so it doesn't blink. Clicking the video
+    plays and pauses. The track's ends are estimated from the font size; drags work
+    on changes, so the estimate only affects where the handle is drawn. `CropButton`
+    (same file) is pinned to the top-left corner of the video panel and shows the crop
+    once one is set.
   - `CropOverlay.swift`: the crop editor drawn over the preview (dimmed outside the
     crop, thirds grid, drag inside to move, corners to resize) and its toolbar
     (shapes, Reset, Cancel, Done). While editing, the preview shows the whole frame
-    without captions; Done rebuilds the composition with the crop. The bottom bar's
-    Crop button opens it and shows the current crop.
+    without captions; Done rebuilds the composition with the crop.
   - `PlayerView.swift`: wraps `AVPlayerView` with its own controls off. Don't switch
     to SwiftUI's `VideoPlayer`: it crashed this SwiftPM-built app at first display
     (`getSuperclassMetadata` in `_AVKit_SwiftUI`). AVKit is also linked explicitly in
@@ -146,7 +183,11 @@ playful rather than slick.
     `HSplitView` ignores safe-area insets and the bar would cover the transport row.
   - Developer launch options: `--open <video>` loads a file as if dropped,
     `--add-line <seconds>` then adds a line there, `--zoom <n>` zooms the timeline,
-    `--crop <shape>` crops (with `--crop-edit`, leaves the editor open), `--settings general|styles` opens
+    `--crop <shape>` crops (with `--crop-edit`, leaves the editor open),
+    `--hover-controls` shows the position track as if hovered,
+    `--simulate-drag <s>` moves the second caption back and forth 60 times a second
+    through the drag path and prints how far the run loop fell behind (run the binary
+    directly to see it; pair with `sample Subya` to profile), `--settings general|styles` opens
     Settings on that tab (via `openSettings`; the old `showSettingsWindow:` action no
     longer works), and `--snapshot <png>` saves an image of the main window, or of
     Settings with `--settings`. The snapshot draws native controls poorly and
@@ -154,7 +195,8 @@ playful rather than slick.
     screen-recording permission.
 - `Sources/subya/`: a developer CLI. `subya transcribe <video> [--srt]` prints
   the captions; `subya burn <video> <out.mp4> [--captions file.srt]` exports, with
-  `--style <name>` (built-in or the user's own), `--position`, `--caps`/`--no-caps`,
+  `--style <name>` (built-in or the user's own), `--position` (top, middle, bottom,
+  or 0–1), `--caps`/`--no-caps`,
   `--scale`, `--words`/`--lines`, `--crop 1:1|9:16|4:5|16:9` (centred) and `--small`
   (720p). Both take `--language <id>`. `subya styles` lists
   style names. Transcribe to SRT, edit it, then burn with `--captions` to script fixes.

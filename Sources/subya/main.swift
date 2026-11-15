@@ -10,7 +10,7 @@ let styles = StyleLibrary.all(from: UserDefaults(suiteName: StyleLibrary.appDoma
 let usage = """
     usage: subya transcribe <video> [--srt] [--language <id>]
            subya burn <video> <output.mp4> [--captions <file.srt>] [--language <id>]
-                      [--style <name>] [--position top|middle|bottom] [--caps|--no-caps]
+                      [--style <name>] [--position top|middle|bottom|0…1] [--caps|--no-caps]
                       [--scale <n>] [--words|--lines] [--crop <aspect>] [--small]
            subya styles
 
@@ -94,8 +94,14 @@ do {
             style.scale = n
         }
         if let value = option("--position") {
-            guard let position = CaptionStyle.Position(rawValue: value.lowercased()) else { fail(usage) }
-            style.position = position
+            // A name, or a number from the Top position (0) to the Bottom one (1).
+            if let position = CaptionStyle.Position(rawValue: value.lowercased()) {
+                style.position = position
+            } else if let vertical = Double(value), (0...1).contains(vertical) {
+                style.vertical = vertical
+            } else {
+                fail("--position must be top, middle, bottom or a number from 0 to 1")
+            }
         }
         if flag("--words") { style.display = .word }
         if flag("--lines") { style.display = .line }

@@ -74,11 +74,11 @@ final class CaptionRendererTests: XCTestCase {
         overlay.update(caps, size: size, style: CaptionStyle(scale: 0.8))
         let small = try XCTUnwrap(overlay.image(at: 1)).extent
         overlay.update(caps, size: size, style: CaptionStyle(scale: 1.6))
-        let ctx = CIContext()
-        let a = try XCTUnwrap(ctx.createCGImage(try XCTUnwrap(overlay.image(at: 1)), from: small))
+        let big = try XCTUnwrap(overlay.image(at: 1)).extent
+        XCTAssertGreaterThan(big.height, small.height)
+        XCTAssertGreaterThan(big.width, small.width)
         overlay.update(caps, size: size, style: CaptionStyle(scale: 0.8))
-        let b = try XCTUnwrap(ctx.createCGImage(try XCTUnwrap(overlay.image(at: 1)), from: small))
-        XCTAssertGreaterThan(opaqueRows(a, rows: 0..<562), opaqueRows(b, rows: 0..<562))
+        XCTAssertEqual(try XCTUnwrap(overlay.image(at: 1)).extent, small)
     }
 
     func testAllCapsUppercasesText() throws {

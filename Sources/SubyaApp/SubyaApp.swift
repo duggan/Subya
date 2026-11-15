@@ -48,6 +48,12 @@ struct SubyaApp: App {
     ///   --zoom <n>           after loading, zoom the timeline in n times
     ///   --crop <shape>       after loading, crop to the centred 1:1, 9:16, 4:5 or 16:9
     ///   --crop-edit          after loading, open the crop editor
+    ///   --hover-controls     show the caption position track as if the pointer were over
+    ///                        the video
+    ///   --simulate-drag <s>  after loading, move the second caption back and forth 60
+    ///                        times a second for s seconds through the timeline's drag
+    ///                        path, then print how far the run loop fell behind (for
+    ///                        profiling with `sample`)
     ///   --settings <tab>     open Settings on "general" or "styles"; with --snapshot, the
     ///                        image is of the Settings window (works without --open)
     ///   --snapshot <png>     after loading, save an image of the window (for checking layout
@@ -93,12 +99,38 @@ struct SubyaApp: App {
         } else {
             model.seek(to: 4.5)
         }
+        if let seconds = value(after: "--simulate-drag").flatMap(Double.init) {
+            await simulateDrag(seconds: seconds)
+        }
         if let path = value(after: "--snapshot") {
             try? await Task.sleep(for: .seconds(1))
             if let window = NSApp.windows.first(where: { $0.isVisible }) {
                 Self.snapshot(window, to: path)
             }
         }
+    }
+
+    @MainActor
+    private func simulateDrag(seconds: Double) async {
+        guard model.captions.count > 1 else { return }
+        let id = model.captions[1].id
+        let base = model.captions[1].start
+        model.selectedCaptionID = id
+        let ticks = Int(seconds * 60)
+        let start = Date()
+        var worst = 0.0
+        var last = Date()
+        for i in 0..<ticks {
+            model.moveCaption(id, toStart: base + 0.6 * sin(Double(i) / 12))
+            try? await Task.sleep(for: .milliseconds(16))
+            let now = Date()
+            worst = max(worst, now.timeIntervalSince(last))
+            last = now
+        }
+        let elapsed = Date().timeIntervalSince(start)
+        print(String(format: "simulate-drag: %d ticks in %.2f s (ideal %.2f s), worst gap %.0f ms",
+                     ticks, elapsed, Double(ticks) * 0.016, worst * 1000))
+        fflush(stdout)
     }
 
     @MainActor

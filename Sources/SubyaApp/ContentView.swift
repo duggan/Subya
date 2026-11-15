@@ -18,15 +18,19 @@ struct ContentView: View {
                         VStack(spacing: 0) {
                             PlayerView(player: player)
                                 .contentShape(Rectangle())
-                                .onTapGesture { if !model.isCropping { model.togglePlay() } }
-                                .overlay { if model.isCropping { CropOverlay(model: model) } }
+                                .overlay {
+                                    if model.isCropping { CropOverlay(model: model) } else { VideoControls(model: model) }
+                                }
+                                .overlay(alignment: .topLeading) {
+                                    if !model.isCropping { CropButton(model: model).padding(12) }
+                                }
                                 .overlay(alignment: .top) { if model.isCropping { CropToolbar(model: model) } }
                                 .layoutPriority(-1)
                             Divider()
                             CaptionTimeline(model: model)
                                 .padding(.horizontal, 12)
                                 .padding(.top, 8)
-                            transportBar
+                            TransportBar(model: model)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(minWidth: 420, minHeight: 260)
@@ -102,7 +106,7 @@ struct ContentView: View {
                 .help("Make and edit styles in Settings")
                 Picker("Position", selection: $model.choice.position) {
                     ForEach(CaptionStyle.Position.allCases) { position in
-                        Text(position.displayName).tag(position)
+                        Text(position.displayName).tag(Optional(position))
                     }
                 }
                 .pickerStyle(.segmented)
@@ -180,59 +184,7 @@ struct ContentView: View {
     }
 
     private func isShowing(_ cap: Caption) -> Bool {
-        model.currentTime >= cap.start && model.currentTime < cap.end
-    }
-
-    private var transportBar: some View {
-        HStack(spacing: 10) {
-            Button { model.togglePlay() } label: {
-                Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
-                    .frame(width: 18)
-            }
-            .buttonStyle(.borderless)
-            .font(.title3)
-            .help(model.isPlaying ? "Pause" : "Play")
-            Slider(value: Binding(get: { model.currentTime }, set: { model.seek(to: $0) }),
-                   in: 0...max(model.duration, 0.1))
-            Text("\(Self.format(model.currentTime)) / \(Self.format(model.duration))")
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-            zoomControl
-            Button { model.addCaption() } label: { Label("Line", systemImage: "plus") }
-                .disabled(model.isBusy)
-                .help("Add a caption line at the playhead (⌘N)")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-    }
-
-    /// Timeline zoom: −/+ and a slider on a log scale, from fitting the whole video to
-    /// `maxTimelineZoom`.
-    private var zoomControl: some View {
-        let maxZoom = max(model.maxTimelineZoom, 1.01)
-        return HStack(spacing: 2) {
-            Button { model.zoomTimeline(by: 1 / 1.5) } label: { Image(systemName: "minus.magnifyingglass") }
-                .disabled(model.timelineZoom <= 1)
-            Slider(value: Binding(get: { log(model.timelineZoom) / log(maxZoom) },
-                                  set: { model.setTimelineZoom(exp($0 * log(maxZoom))) }),
-                   in: 0...1)
-                .frame(width: 70)
-            Button { model.zoomTimeline(by: 1.5) } label: { Image(systemName: "plus.magnifyingglass") }
-                .disabled(model.timelineZoom >= maxZoom)
-        }
-        .buttonStyle(.borderless)
-        .help("Zoom the timeline (⌘+ and ⌘−, ⌘0 to fit, or pinch on it)")
-    }
-
-    private static func format(_ t: Double) -> String {
-        let t = max(0, t.isFinite ? t : 0)
-        return String(format: "%d:%04.1f", Int(t) / 60, t.truncatingRemainder(dividingBy: 60))
-    }
-
-    private var cropLabel: String {
-        if model.crop.isFull { return "Crop" }
-        let px = model.crop.pixelRect(in: model.frameSize)
-        return model.cropAspect == .free ? "Crop: \(Int(px.width))×\(Int(px.height))" : "Crop: \(model.cropAspect.displayName)"
+        model.currentCaptionID == cap.id
     }
 
     private var bottomBar: some View {
@@ -244,11 +196,6 @@ struct ContentView: View {
             Text(model.status).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             if model.player != nil {
-                Button { model.startCropping() } label: {
-                    Label(cropLabel, systemImage: "crop")
-                }
-                .disabled(model.isCropping || model.isBusy)
-                .help("Crop the video, for example to 9:16 for Stories or 1:1")
                 Button("Export…") { model.exportVideo() }
                     .keyboardShortcut("e")
                     .buttonStyle(.borderedProminent)
@@ -298,5 +245,57 @@ private struct InitialWindowSize: NSViewRepresentable {
                 window.center()
             }
         }
+    }
+}
+
+/// Play/pause, the scrubber, the time, timeline zoom and "+ Line". A view of its own so
+/// that only it re-renders as the playhead moves, not the whole window.
+private struct TransportBar: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button { model.togglePlay() } label: {
+                Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
+                    .frame(width: 18)
+            }
+            .buttonStyle(.borderless)
+            .font(.title3)
+            .help(model.isPlaying ? "Pause" : "Play")
+            Slider(value: Binding(get: { model.currentTime }, set: { model.seek(to: $0) }),
+                   in: 0...max(model.duration, 0.1))
+            Text("\(Self.format(model.currentTime)) / \(Self.format(model.duration))")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+            zoomControl
+            Button { model.addCaption() } label: { Label("Line", systemImage: "plus") }
+                .disabled(model.isBusy)
+                .help("Add a caption line at the playhead (⌘N)")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    /// Timeline zoom: −/+ and a slider on a log scale, from fitting the whole video to
+    /// `maxTimelineZoom`.
+    private var zoomControl: some View {
+        let maxZoom = max(model.maxTimelineZoom, 1.01)
+        return HStack(spacing: 2) {
+            Button { model.zoomTimeline(by: 1 / 1.5) } label: { Image(systemName: "minus.magnifyingglass") }
+                .disabled(model.timelineZoom <= 1)
+            Slider(value: Binding(get: { log(model.timelineZoom) / log(maxZoom) },
+                                  set: { model.setTimelineZoom(exp($0 * log(maxZoom))) }),
+                   in: 0...1)
+                .frame(width: 70)
+            Button { model.zoomTimeline(by: 1.5) } label: { Image(systemName: "plus.magnifyingglass") }
+                .disabled(model.timelineZoom >= maxZoom)
+        }
+        .buttonStyle(.borderless)
+        .help("Zoom the timeline (⌘+ and ⌘−, ⌘0 to fit, or pinch on it)")
+    }
+
+    private static func format(_ t: Double) -> String {
+        let t = max(0, t.isFinite ? t : 0)
+        return String(format: "%d:%04.1f", Int(t) / 60, t.truncatingRemainder(dividingBy: 60))
     }
 }

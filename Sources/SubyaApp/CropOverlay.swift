@@ -31,7 +31,9 @@ struct CropOverlay: View {
                     .fill(.white.opacity(0.001))
                     .frame(width: r.width, height: r.height)
                     .offset(x: r.minX, y: r.minY)
-                    .gesture(DragGesture()
+                    // Measured in the overlay's fixed space: the rectangle moves with the drag,
+                    // so its own coordinates would make it lag behind the pointer.
+                    .gesture(DragGesture(coordinateSpace: .named("crop"))
                         .onChanged { value in
                             let start = dragStart ?? model.crop
                             dragStart = start
