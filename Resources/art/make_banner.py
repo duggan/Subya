@@ -27,7 +27,7 @@ print(f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="
 <text x="900" y="330" text-anchor="middle" font-family="{F}" font-size="250" fill="#FFF" stroke="{INK}" stroke-width="50" stroke-linejoin="round" paint-order="stroke">SUBYA</text>
 <rect x="578" y="398" width="660" height="88" rx="20" fill="{INK}"/>
 <rect x="570" y="390" width="660" height="88" rx="20" fill="{PINK}" stroke="{INK}" stroke-width="8"/>
-<text x="900" y="453" text-anchor="middle" font-family="{F}" font-size="52" letter-spacing="1.5" fill="#FFF" stroke="{INK}" stroke-width="11" stroke-linejoin="round" paint-order="stroke">BIG CAPTIONS FOR YOUR MEMES</text>
+<text x="900" y="453" text-anchor="middle" font-family="{F}" font-size="52" letter-spacing="1.5" fill="#FFF" stroke="{INK}" stroke-width="11" stroke-linejoin="round" paint-order="stroke">CAPTIONS FOR YOUR CLIPS</text>
 </g>
 <text x="915" y="566" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="bold" font-size="28" fill="{INK}">Burned in, on your Mac. Free &amp; open source.</text>
 </svg>''')

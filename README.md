@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.png" alt="Subya: big, loud captions for your memes and reaction clips" width="760">
+  <img src="docs/assets/banner.png" alt="Subya: captions for your clips" width="760">
 </p>
 
 <p align="center">
