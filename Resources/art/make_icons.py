@@ -1,12 +1,28 @@
 """Generates Subya's artwork as SVG. `make icons` renders these into the files in
 Resources/.
 
-The icon is a reaction shot: a pink blob giving side-eye in front of a comic sunburst,
-with "SUB YA" burned in across the bottom the way the app draws captions: white, with a
-thick black outline.
+The icon is Bubble Buddy: a chubby white speech bubble with a face, beaming because it
+has something to say, in front of a comic sunburst, with "SUB YA" burned in across the
+bottom the way the app draws captions: white, with a thick black outline.
+
+    python3 make_icons.py          # writes AppIcon.svg and DMGBackground.svg here
+    python3 make_icons.py site     # the website's sticker icon, on stdout
+    python3 make_icons.py touch    # the square, opaque apple-touch-icon, on stdout
+
+The website's copies in docs/assets/ are made from those:
+
+    cp Resources/art/AppIcon.svg docs/assets/icon.svg
+    python3 Resources/art/make_icons.py site > site.svg
+    inkscape site.svg -o docs/assets/icon-512.png -w 512 -h 512
+    inkscape site.svg -o docs/assets/favicon.png -w 64 -h 64
+    python3 Resources/art/make_icons.py touch > touch.svg
+    inkscape touch.svg -o docs/assets/apple-touch-icon.png -w 180 -h 180 -b "#FFB400" -y 1
+
+make_banner.py draws the README and social-card banner with the same character.
 """
 import math
 import os
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -14,8 +30,9 @@ PAPER = "#F3F1EC"
 INK = "#1F2329"
 BURST_DARK = "#FFB400"
 BURST_LIGHT = "#FFD84A"
-BLOB = "#FF5D8F"
-BLOB_SHADE = "#E23E77"
+PINK = "#FF5D8F"
+MOUTH = "#7A1F3D"
+TONGUE = "#FF9DBB"
 CAPTION_FONT = "Impact, Helvetica Neue Condensed Black, Arial Narrow, sans-serif"
 
 
@@ -30,20 +47,6 @@ def sunburst(cx, cy, radius, rays):
     return f'<path d="{" ".join(wedges)}" fill="{BURST_LIGHT}"/>'
 
 
-def side_eye(cx, cy, n):
-    """One half-lidded eye, pupil shoved into the corner. `n` keeps the clip id unique."""
-    rx, ry = 104, 112
-    return f'''<clipPath id="eye{n}"><ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}"/></clipPath>
-    <ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="#FFF"/>
-    <g clip-path="url(#eye{n})">
-      <circle cx="{cx + 52}" cy="{cy + 22}" r="50" fill="{INK}"/>
-      <circle cx="{cx + 34}" cy="{cy + 2}" r="15" fill="#FFF"/>
-      <rect x="{cx - rx}" y="{cy - ry}" width="{2 * rx}" height="{ry - 34}" fill="{BLOB_SHADE}"/>
-      <path d="M{cx - rx},{cy - 34} L{cx + rx},{cy - 34}" stroke="{INK}" stroke-width="18"/>
-    </g>
-    <ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="none" stroke="{INK}" stroke-width="18"/>'''
-
-
 def caption(x, y, size, text):
     """Meme caption text, drawn the way the app burns captions in: white, thick black outline."""
     return (f'<text x="{x}" y="{y}" text-anchor="middle" font-family="{CAPTION_FONT}" font-size="{size}" '
@@ -51,33 +54,61 @@ def caption(x, y, size, text):
             f'paint-order="stroke">{text}</text>')
 
 
-def app_icon():
-    """A pink blob giving the viewer side-eye in front of a comic sunburst, captioned "SUB YA".
+def bubble_buddy():
+    """Bubble Buddy, drawn in the icon's 1024 square: a chubby speech bubble, tilted a
+    little, with a pink copy peeking out behind it like a sticker's shadow, dot eyes,
+    pink cheeks and a wide-open smile. Everything is outlined in thick ink."""
+    shape = ("M326,170 H698 A130,130 0 0 1 828,300 V470 A130,130 0 0 1 698,600 H452 "
+             "L286,722 L330,600 H326 A130,130 0 0 1 196,470 V300 A130,130 0 0 1 326,170 Z")
+    mouth = "M424,452 Q512,478 600,452 Q602,560 512,560 Q422,560 424,452 Z"
 
-    Everything is outlined in thick ink, like a sticker; the caption sits slightly askew and
-    overlaps the blob's chin, as a burned-in caption would.
-    """
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+    def dot_eye(x):
+        return (f'<ellipse cx="{x}" cy="352" rx="46" ry="66" fill="{INK}"/>'
+                f'<circle cx="{x - 12}" cy="328" r="17" fill="#FFF"/>'
+                f'<circle cx="{x + 14}" cy="380" r="8" fill="#FFF"/>')
+
+    def cheek(x):
+        return f'<ellipse cx="{x}" cy="446" rx="50" ry="30" fill="{PINK}"/>'
+
+    return f'''<g transform="rotate(-4 512 420)">
+      <path d="{shape}" transform="translate(22 24)" fill="{PINK}" stroke="{INK}" stroke-width="20" stroke-linejoin="round"/>
+      <path d="{shape}" fill="#FFF" stroke="{INK}" stroke-width="20" stroke-linejoin="round"/>
+      {cheek(306)}{cheek(718)}
+      {dot_eye(408)}{dot_eye(616)}
+      <clipPath id="mouth"><path d="{mouth}"/></clipPath>
+      <path d="{mouth}" fill="{MOUTH}"/>
+      <g clip-path="url(#mouth)"><ellipse cx="512" cy="560" rx="62" ry="40" fill="{TONGUE}"/></g>
+      <path d="{mouth}" fill="none" stroke="{INK}" stroke-width="20" stroke-linejoin="round"/>
+    </g>'''
+
+
+def app_icon(look="app"):
+    """Bubble Buddy in front of a comic sunburst, captioned "SUB YA". The caption sits
+    slightly askew and overlaps the bubble's tail, as a burned-in caption would.
+
+    `look` is "app" (the macOS icon: a squircle with a soft drop shadow), "site" (the
+    website's sticker: an ink outline and a hard offset shadow, cropped close) or "touch"
+    (the sunburst filling the whole square, opaque, for the apple-touch-icon)."""
+    box, radius, shadow, outline = "0 0 1024 1024", 185, "", ""
+    if look == "app":
+        shadow = '<rect x="100" y="112" width="824" height="824" rx="185" fill="#000" fill-opacity="0.18"/>'
+    elif look == "site":
+        box = "82 82 864 864"
+        shadow = f'<rect x="112" y="114" width="824" height="824" rx="185" fill="{INK}"/>'
+        outline = f'<rect x="100" y="100" width="824" height="824" rx="185" fill="none" stroke="{INK}" stroke-width="20"/>'
+    else:
+        box, radius = "100 100 824 824", 0
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{box}" width="1024" height="1024">
   <defs>
-    <clipPath id="frame"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+    <clipPath id="frame"><rect x="100" y="100" width="824" height="824" rx="{radius}"/></clipPath>
   </defs>
-  <rect x="100" y="112" width="824" height="824" rx="185" fill="#000" fill-opacity="0.18"/>
+  {shadow}
   <g clip-path="url(#frame)">
     <rect x="100" y="100" width="824" height="824" fill="{BURST_DARK}"/>
     {sunburst(512, 540, 700, 11)}
-    <g stroke="{INK}" stroke-width="20" stroke-linejoin="round" stroke-linecap="round">
-      <path d="M440,262 L452,172 L512,232 L566,150 L596,262 Z" fill="{BLOB}"/>
-      <path d="M172,960 C140,520 200,236 516,236 C832,236 884,520 852,960 Z" fill="{BLOB}"/>
-    </g>
-    {side_eye(392, 452, 1)}
-    {side_eye(636, 452, 2)}
-    <g fill="none" stroke="{INK}" stroke-width="24" stroke-linecap="round">
-      <path d="M322,322 L476,334"/>
-      <path d="M556,304 C606,262 684,262 730,302"/>
-      <path d="M452,636 C520,668 600,656 652,598"/>
-      <path d="M632,574 L676,612" stroke-width="18"/>
-    </g>
+    {bubble_buddy()}
   </g>
+  {outline}
   <g transform="rotate(-5 512 800)">
     {caption(512, 868, 222, "SUB YA")}
   </g>
@@ -100,6 +131,9 @@ def dmg_background():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        sys.stdout.write(app_icon(sys.argv[1]))
+        sys.exit()
     for name, svg in (("AppIcon.svg", app_icon()), ("DMGBackground.svg", dmg_background())):
         with open(os.path.join(HERE, name), "w") as f:
             f.write(svg)

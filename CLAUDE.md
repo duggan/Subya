@@ -238,12 +238,30 @@ playful rather than slick.
   pre-release. Bump `CFBundleShortVersionString` and `CFBundleVersion` in
   `Resources/App-Info.plist` before tagging. Both workflows run on `macos-26`, since
   the code needs the macOS 26 SDK.
-- `Resources/art/make_icons.py` draws the artwork as SVG: an original pink blob
-  character giving smug side-eye on a comic sunburst, with "SUB YA" burned across the
-  bottom in Impact, white with a black outline, the app's caption style. It's drawn
-  like a sticker, all thick ink outlines. Keep it an original character, not an
-  existing meme or mascot. `make icons` (Inkscape) renders `Subya.icns` and the DMG
-  background into `Resources/`. Commit them.
+- `Resources/art/make_icons.py` draws the artwork as SVG. The mascot is Bubble Buddy
+  (`bubble_buddy()`): a chubby white speech bubble with a pink sticker shadow, dot
+  eyes, pink cheeks and a beaming open smile, on a yellow comic sunburst, with "SUB YA"
+  burned across the bottom in Impact, white with a black outline, the app's caption
+  style. It's drawn like a sticker, all thick ink outlines. Keep it cheerful (the
+  mascot before it, a blob giving smug side-eye, came across as smarmy) and keep it an
+  original character, not an existing meme, emoji or mascot. `make icons` (Inkscape)
+  renders `Subya.icns` and the DMG background (an arrow and a line of text, no
+  character) into `Resources/`. Commit them.
+- The website's icons in `docs/assets/` come from the same script (the commands are in
+  its docstring): `icon.svg` is a copy of `AppIcon.svg`; `make_icons.py site` draws
+  the sticker version (ink outline, hard shadow) for `icon-512.png` and `favicon.png`;
+  `make_icons.py touch` the square opaque one for `apple-touch-icon.png`.
+- `Resources/art/make_banner.py` draws the README and social-card banner
+  (`Banner.svg`, rendered to `docs/assets/banner.png` at 1280×640, opaque), importing
+  Bubble Buddy from `make_icons.py`; how to render is in the comment at its top.
+- `Resources/art/mascot-options/` keeps the six mascots Bubble Buddy was picked from
+  (`options.png` and the scripts that drew them), for reference only.
+- `docs/index.html` is the website. Its illustrated clips star Bubble Buddy's
+  family: speech-bubble characters in the same sticker style (round, oval, box, cloud
+  thought bubble, spiky shout bubble, dashed whisper bubble), built from shared
+  `b-*` bodies (`-r` mirrors the tail) and `f-*` faces drawn around 0,0, coloured with
+  `--fill`, `--shade` and `--cheek`. Bubble Buddy himself (white, pink shadow) stars in
+  the hero. None of them is smug, and none sits over a caption.
 
 ## Testing
 

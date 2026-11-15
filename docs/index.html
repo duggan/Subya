@@ -17,12 +17,12 @@
 <meta property="og:image" content="https://duggan.github.io/Subya/assets/banner.png">
 <meta property="og:image:width" content="1280">
 <meta property="og:image:height" content="640">
-<meta property="og:image:alt" content="A smug pink blob giving side-eye on a yellow comic sunburst, next to the word SUBYA and the line: big captions for your memes.">
+<meta property="og:image:alt" content="A beaming white speech bubble with dot eyes and pink cheeks on a yellow comic sunburst, next to the word SUBYA and the line: big captions for your memes.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Subya: big captions for your memes">
 <meta name="twitter:description" content="A free, open-source Mac app that burns big, readable captions into your clips. Everything stays on your Mac.">
 <meta name="twitter:image" content="https://duggan.github.io/Subya/assets/banner.png">
-<meta name="twitter:image:alt" content="A smug pink blob giving side-eye on a yellow comic sunburst, next to the word SUBYA and the line: big captions for your memes.">
+<meta name="twitter:image:alt" content="A beaming white speech bubble with dot eyes and pink cheeks on a yellow comic sunburst, next to the word SUBYA and the line: big captions for your memes.">
 <style>
 /* ---------- basics ---------- */
 :root {
@@ -323,50 +323,33 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<!-- Shared drawings: one blob, four faces, four backdrops. All original. -->
+<!-- Shared drawings: Bubble Buddy's family (speech-bubble bodies b-*, with -r mirrored; faces f-*, both
+     drawn around 0,0 so any face fits any body) and four backdrops. All original. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>
-    <symbol id="blob" viewBox="0 0 200 220">
-      <g style="fill:var(--blob, #FF5D8F)" stroke="#1F2329" stroke-width="6" stroke-linejoin="round">
-        <path d="M78,44 L82,14 L100,34 L116,8 L124,44 Z"/>
-        <path d="M22,240 C12,104 34,38 100,38 C166,38 188,104 178,240 Z"/>
-      </g>
-    </symbol>
-    <symbol id="face-smug" viewBox="0 0 200 220">
-      <clipPath id="fs1"><ellipse cx="70" cy="96" rx="26" ry="28"/></clipPath>
-      <clipPath id="fs2"><ellipse cx="131" cy="96" rx="26" ry="28"/></clipPath>
-      <g stroke="#1F2329" stroke-width="5">
-        <ellipse cx="70" cy="96" rx="26" ry="28" fill="#fff"/><ellipse cx="131" cy="96" rx="26" ry="28" fill="#fff"/>
-      </g>
-      <g clip-path="url(#fs1)"><circle cx="83" cy="102" r="13" fill="#1F2329"/><circle cx="79" cy="97" r="4" fill="#fff"/><rect x="40" y="64" width="60" height="23" style="fill:var(--shade, #E23E77)"/><path d="M40,87 H100" stroke="#1F2329" stroke-width="5"/></g>
-      <g clip-path="url(#fs2)"><circle cx="144" cy="102" r="13" fill="#1F2329"/><circle cx="140" cy="97" r="4" fill="#fff"/><rect x="101" y="64" width="60" height="23" style="fill:var(--shade, #E23E77)"/><path d="M101,87 H161" stroke="#1F2329" stroke-width="5"/></g>
-      <g fill="none" stroke="#1F2329" stroke-width="5">
-        <ellipse cx="70" cy="96" rx="26" ry="28"/><ellipse cx="131" cy="96" rx="26" ry="28"/>
-      </g>
-      <g fill="none" stroke="#1F2329" stroke-width="6.5" stroke-linecap="round">
-        <path d="M51,60 L91,63"/><path d="M111,56 C124,45 144,45 156,55"/><path d="M84,142 C102,150 123,147 136,132"/><path d="M131,126 L142,136" stroke-width="5"/>
-      </g>
-    </symbol>
-    <symbol id="face-shock" viewBox="0 0 200 220">
-      <g stroke="#1F2329" stroke-width="5" fill="#fff"><circle cx="70" cy="96" r="25"/><circle cx="131" cy="96" r="25"/></g>
-      <circle cx="70" cy="98" r="7" fill="#1F2329"/><circle cx="131" cy="98" r="7" fill="#1F2329"/>
-      <g fill="none" stroke="#1F2329" stroke-width="6.5" stroke-linecap="round"><path d="M50,58 C60,48 78,48 88,56"/><path d="M113,56 C123,48 141,48 151,58"/></g>
-      <ellipse cx="100" cy="150" rx="13" ry="17" fill="#1F2329"/>
-    </symbol>
-    <symbol id="face-flat" viewBox="0 0 200 220">
-      <clipPath id="ff1"><ellipse cx="70" cy="96" rx="26" ry="24"/></clipPath>
-      <clipPath id="ff2"><ellipse cx="131" cy="96" rx="26" ry="24"/></clipPath>
-      <g stroke="#1F2329" stroke-width="5" fill="#fff"><ellipse cx="70" cy="96" rx="26" ry="24"/><ellipse cx="131" cy="96" rx="26" ry="24"/></g>
-      <g clip-path="url(#ff1)"><circle cx="70" cy="104" r="12" fill="#1F2329"/><rect x="40" y="68" width="60" height="26" style="fill:var(--shade, #E23E77)"/><path d="M40,94 H100" stroke="#1F2329" stroke-width="5"/></g>
-      <g clip-path="url(#ff2)"><circle cx="131" cy="104" r="12" fill="#1F2329"/><rect x="101" y="68" width="60" height="26" style="fill:var(--shade, #E23E77)"/><path d="M101,94 H161" stroke="#1F2329" stroke-width="5"/></g>
-      <g fill="none" stroke="#1F2329" stroke-width="5"><ellipse cx="70" cy="96" rx="26" ry="24"/><ellipse cx="131" cy="96" rx="26" ry="24"/></g>
-      <g fill="none" stroke="#1F2329" stroke-width="6.5" stroke-linecap="round"><path d="M52,60 H90"/><path d="M111,60 H149"/><path d="M82,146 H120"/></g>
-    </symbol>
-    <symbol id="face-happy" viewBox="0 0 200 220">
-      <g fill="none" stroke="#1F2329" stroke-width="7" stroke-linecap="round"><path d="M50,102 Q70,76 90,102"/><path d="M111,102 Q131,76 151,102"/></g>
-      <path d="M70,128 Q100,176 131,128 Z" fill="#1F2329" stroke="#1F2329" stroke-width="6" stroke-linejoin="round"/>
-      <path d="M86,148 Q100,160 115,148 Q100,142 86,148 Z" fill="#FF8FB0"/>
-    </symbol>
+    <g id="p-round"><path d="M-35,-41 H35 A25,25 0 0 1 60,-16 V16 A25,25 0 0 1 35,41 H-11 L-43,64 L-35,41 A25,25 0 0 1 -60,16 V-16 A25,25 0 0 1 -35,-41 Z"/></g>
+    <g id="b-round" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-round" transform="translate(4.5 5)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-round" style="fill:var(--fill, #fff)"/></g>
+    <g id="b-round-r" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-round" transform="translate(4.5 5) scale(-1 1)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-round" transform="scale(-1 1)" style="fill:var(--fill, #fff)"/></g>
+    <g id="p-oval"><path d="M-18,44 A62,46 0 1 0 -40,35.1 L-50,66 Z"/></g>
+    <g id="b-oval" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-oval" transform="translate(4.5 5)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-oval" style="fill:var(--fill, #fff)"/></g>
+    <g id="b-oval-r" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-oval" transform="translate(4.5 5) scale(-1 1)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-oval" transform="scale(-1 1)" style="fill:var(--fill, #fff)"/></g>
+    <g id="p-box"><path d="M-48,-40 H48 A11,11 0 0 1 59,-29 V29 A11,11 0 0 1 48,40 H12 L0,62 L-12,40 H-48 A11,11 0 0 1 -59,29 V-29 A11,11 0 0 1 -48,-40 Z"/></g>
+    <g id="b-box" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-box" transform="translate(4.5 5)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-box" style="fill:var(--fill, #fff)"/></g>
+    <g id="p-cloud"><path d="M19.5,-36.6 A20.7,20.7 0 0 1 49.4,-19.5 A16.3,16.3 0 0 1 56.1,6.8 A18.1,18.1 0 0 1 36.6,29.9 A22.7,22.7 0 0 1 0,39 A22.7,22.7 0 0 1 -36.6,29.9 A18.1,18.1 0 0 1 -56.1,6.8 A16.3,16.3 0 0 1 -49.4,-19.5 A20.7,20.7 0 0 1 -19.5,-36.6 A23.4,23.4 0 0 1 19.5,-36.6 Z"/><circle cx="-47" cy="52" r="7.5"/><circle cx="-60" cy="66" r="4.5"/></g>
+    <g id="b-cloud" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-cloud" transform="translate(4.5 5)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-cloud" style="fill:var(--fill, #fff)"/></g>
+    <g id="b-cloud-r" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-cloud" transform="translate(4.5 5) scale(-1 1)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-cloud" transform="scale(-1 1)" style="fill:var(--fill, #fff)"/></g>
+    <g id="p-shout"><path d="M9.1,-57.6 L20.2,-39.3 L38.8,-43 L42.6,-27.9 L71.3,-28.6 L55.3,-10.1 L70.7,-0 L55.4,10 L68.7,27.4 L42.7,27.8 L38.9,42.9 L20.3,39.3 L9.7,60.4 L-6.8,41.7 L-25.5,51.5 L-32.3,34.6 L-80.7,54.7 L-50.4,19.5 L-66.4,12.5 L-57,0 L-78.2,-14.7 L-50.5,-19.5 L-53.5,-36.1 L-32.4,-34.5 L-27.5,-55.3 L-6.9,-41.7 Z"/></g>
+    <g id="b-shout" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-shout" transform="translate(4.5 5)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-shout" style="fill:var(--fill, #fff)"/></g>
+    <g id="b-shout-r" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-shout" transform="translate(4.5 5) scale(-1 1)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-shout" transform="scale(-1 1)" style="fill:var(--fill, #fff)"/></g>
+    <g id="p-whisper"><path d="M-22,-39 H22 A34,34 0 0 1 56,-5 V5 A34,34 0 0 1 22,39 H-14 L-34,56 L-30,37.5 A34,34 0 0 1 -56,5 V-5 A34,34 0 0 1 -22,-39 Z"/></g>
+    <g id="b-whisper" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-whisper" transform="translate(4.5 5)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-whisper" stroke-dasharray="6.5 6" stroke-linecap="round" style="fill:var(--fill, #fff)"/></g>
+    <g id="b-whisper-r" stroke="#1F2329" stroke-width="4" stroke-linejoin="round"><use href="#p-whisper" transform="translate(4.5 5) scale(-1 1)" style="fill:var(--shade, #FF5D8F)"/><use href="#p-whisper" transform="scale(-1 1)" stroke-dasharray="6.5 6" stroke-linecap="round" style="fill:var(--fill, #fff)"/></g>
+    <g id="f-happy"><g style="fill:var(--cheek, #FF5D8F)"><ellipse cx="-39" cy="11.5" rx="9.5" ry="5.7"/><ellipse cx="39" cy="11.5" rx="9.5" ry="5.7"/></g><g fill="#1F2329"><ellipse cx="-20" cy="-6" rx="8.5" ry="12.5"/><ellipse cx="20" cy="-6" rx="8.5" ry="12.5"/></g><g fill="#fff"><circle cx="-22.3" cy="-10.5" r="3.2"/><circle cx="-17.4" cy="-.8" r="1.5"/><circle cx="17.7" cy="-10.5" r="3.2"/><circle cx="22.6" cy="-.8" r="1.5"/></g><clipPath id="mouth-happy"><path d="M-17,13 Q0,18 17,13 Q17.4,33.5 0,33.5 Q-17.4,33.5 -17,13 Z"/></clipPath><path d="M-17,13 Q0,18 17,13 Q17.4,33.5 0,33.5 Q-17.4,33.5 -17,13 Z" fill="#7A1F3D"/><g clip-path="url(#mouth-happy)"><ellipse cx="0" cy="33.5" rx="12" ry="7.6" fill="#FF9DBB"/></g><path d="M-17,13 Q0,18 17,13 Q17.4,33.5 0,33.5 Q-17.4,33.5 -17,13 Z" fill="none" stroke="#1F2329" stroke-width="3.8" stroke-linejoin="round"/></g>
+    <g id="f-joy"><g style="fill:var(--cheek, #FF5D8F)"><ellipse cx="-39" cy="11.5" rx="9.5" ry="5.7"/><ellipse cx="39" cy="11.5" rx="9.5" ry="5.7"/></g><path d="M-29,-2 Q-20,-15 -11,-2 M11,-2 Q20,-15 29,-2" fill="none" stroke="#1F2329" stroke-width="4.2" stroke-linecap="round"/><clipPath id="mouth-joy"><path d="M-17,13 Q0,18 17,13 Q17.4,33.5 0,33.5 Q-17.4,33.5 -17,13 Z"/></clipPath><path d="M-17,13 Q0,18 17,13 Q17.4,33.5 0,33.5 Q-17.4,33.5 -17,13 Z" fill="#7A1F3D"/><g clip-path="url(#mouth-joy)"><ellipse cx="0" cy="33.5" rx="12" ry="7.6" fill="#FF9DBB"/></g><path d="M-17,13 Q0,18 17,13 Q17.4,33.5 0,33.5 Q-17.4,33.5 -17,13 Z" fill="none" stroke="#1F2329" stroke-width="3.8" stroke-linejoin="round"/></g>
+    <g id="f-sweet"><g style="fill:var(--cheek, #FF5D8F)"><ellipse cx="-39" cy="11.5" rx="9.5" ry="5.7"/><ellipse cx="39" cy="11.5" rx="9.5" ry="5.7"/></g><g fill="#1F2329"><ellipse cx="-20" cy="-6" rx="9.5" ry="13.5"/><ellipse cx="20" cy="-6" rx="9.5" ry="13.5"/></g><g fill="#fff"><circle cx="-22.3" cy="-10.5" r="4.2"/><circle cx="-17.4" cy="-.8" r="1.5"/><circle cx="17.7" cy="-10.5" r="4.2"/><circle cx="22.6" cy="-.8" r="1.5"/></g><path d="M-8,17 Q0,25 8,17" fill="none" stroke="#1F2329" stroke-width="3.8" stroke-linecap="round"/></g>
+    <g id="f-flat"><g style="fill:var(--cheek, #FF5D8F)"><ellipse cx="-39" cy="11.5" rx="9.5" ry="5.7"/><ellipse cx="39" cy="11.5" rx="9.5" ry="5.7"/></g><g fill="#1F2329"><ellipse cx="-20" cy="-6" rx="8.5" ry="12.5"/><ellipse cx="20" cy="-6" rx="8.5" ry="12.5"/></g><g fill="#fff"><circle cx="-22.3" cy="-10.5" r="3.2"/><circle cx="-17.4" cy="-.8" r="1.5"/><circle cx="17.7" cy="-10.5" r="3.2"/><circle cx="22.6" cy="-.8" r="1.5"/></g><path d="M-10,20 H10" fill="none" stroke="#1F2329" stroke-width="3.8" stroke-linecap="round"/></g>
+    <g id="f-pout"><g style="fill:var(--cheek, #FF5D8F)"><ellipse cx="-39" cy="11.5" rx="9.5" ry="5.7"/><ellipse cx="39" cy="11.5" rx="9.5" ry="5.7"/></g><g fill="#1F2329"><ellipse cx="-20" cy="-6" rx="8.5" ry="12.5"/><ellipse cx="20" cy="-6" rx="8.5" ry="12.5"/></g><g fill="#fff"><circle cx="-22.3" cy="-10.5" r="3.2"/><circle cx="-17.4" cy="-.8" r="1.5"/><circle cx="17.7" cy="-10.5" r="3.2"/><circle cx="22.6" cy="-.8" r="1.5"/></g><path d="M-28,-26 L-14,-25 M28,-26 L14,-25" fill="none" stroke="#1F2329" stroke-width="3.8" stroke-linecap="round"/><path d="M-7,22 Q0,16.5 7,22" fill="none" stroke="#1F2329" stroke-width="3.8" stroke-linecap="round"/></g>
+    <g id="f-shock"><g style="fill:var(--cheek, #FF5D8F)"><ellipse cx="-39" cy="11.5" rx="9.5" ry="5.7"/><ellipse cx="39" cy="11.5" rx="9.5" ry="5.7"/></g><g fill="#1F2329"><ellipse cx="-20" cy="-6" rx="10" ry="13"/><ellipse cx="20" cy="-6" rx="10" ry="13"/></g><g fill="#fff"><circle cx="-22.5" cy="-10.5" r="3.4"/><circle cx="-17" cy="-.5" r="1.5"/><circle cx="17.5" cy="-10.5" r="3.4"/><circle cx="23" cy="-.5" r="1.5"/></g><path d="M-30,-25 Q-21,-31 -12,-27 M12,-27 Q21,-31 30,-25" fill="none" stroke="#1F2329" stroke-width="3.4" stroke-linecap="round"/><ellipse cx="0" cy="23" rx="7" ry="9.5" fill="#7A1F3D" stroke="#1F2329" stroke-width="3.4"/></g>
     <symbol id="bg-room" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
       <rect width="320" height="180" fill="#7CCBFF"/><rect y="132" width="320" height="48" fill="#4FA3DD"/>
       <rect x="22" y="24" width="64" height="50" rx="4" fill="#FFF6DF" stroke="#1F2329" stroke-width="4"/><path d="M30,66 L48,44 L60,58 L68,50 L80,66 Z" fill="#6EE7C8" stroke="#1F2329" stroke-width="3" stroke-linejoin="round"/>
@@ -420,7 +403,6 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
         <ul class="chips" aria-label="Good to know">
           <li>Requires macOS 26 Tahoe</li>
           <li>Free &amp; open source</li>
-          <li>Signed &amp; notarized</li>
         </ul>
       </div>
 
@@ -437,17 +419,19 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
                alt="Subya's window: a video preview with a burned-in caption, a filmstrip timeline with caption blocks, and the list of caption lines.">
           ============================================================
         -->
-        <div class="win" id="heroWin" role="img" aria-label="A drawing of Subya's window. A pink blob character is on screen with a caption popping in one word at a time. Under the video is a filmstrip timeline with three caption blocks, and beside it the list of caption lines.">
+        <div class="win" id="heroWin" role="img" aria-label="A drawing of Subya's window. Bubble Buddy, a white speech-bubble character with a pink sticker shadow and a big smile, is on screen with a caption popping in one word at a time. Under the video is a filmstrip timeline with three caption blocks, and beside it the list of caption lines.">
           <div class="win-bar" aria-hidden="true"><i></i><i></i><i></i><span>biscuits.mp4</span></div>
           <div class="win-body" aria-hidden="true">
             <div class="win-left">
               <div class="preview">
                 <svg viewBox="0 0 320 180">
                   <use href="#bg-room"/>
-                  <use href="#blob" x="86" y="26" width="148" height="163"/>
-                  <use class="face on" href="#face-happy" x="86" y="26" width="148" height="163"/>
-                  <use class="face" href="#face-flat" x="86" y="26" width="148" height="163"/>
-                  <use class="face" href="#face-smug" x="86" y="26" width="148" height="163"/>
+                  <g transform="translate(160 57) rotate(-4)">
+                    <use href="#b-round"/>
+                    <use class="face on" href="#f-happy"/>
+                    <use class="face" href="#f-flat"/>
+                    <g class="face"><use href="#f-sweet"/><g fill="#C98A3C" stroke="#1F2329" stroke-width="1.2"><circle cx="-13" cy="23" r="2.2"/><circle cx="12" cy="25" r="1.8"/><circle cx="16" cy="18" r="1.5"/><circle cx="-6" cy="29" r="1.5"/></g></g>
+                  </g>
                   <text id="heroWord" class="cap c-hero" x="160" y="166">BISCUIT</text>
                 </svg>
               </div>
@@ -491,7 +475,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
 <section id="how" class="dots" aria-labelledby="how-h">
   <div class="wrap">
     <div class="section-head">
-      <h2 id="how-h" class="display">Three steps. Then smugness.</h2>
+      <h2 id="how-h" class="display">Three steps. Then glory.</h2>
       <p>No project files, no timeline wrangling degree. A clip goes in, a captioned clip comes out.</p>
     </div>
     <ol class="steps">
@@ -544,11 +528,10 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
     </div>
     <div class="cards">
       <article class="card sticker">
-        <div class="demo" role="img" aria-label="A startled purple blob with single words flashing up one at a time in large letters.">
+        <div class="demo" role="img" aria-label="A startled purple shout bubble, all spikes, with single words flashing up one at a time in large letters.">
           <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
             <use href="#bg-night"/>
-            <use href="#blob" x="92" y="34" width="136" height="150" style="--blob:#B79CFF"/>
-            <use href="#face-shock" x="92" y="34" width="136" height="150"/>
+            <g transform="translate(166 40) scale(0.62)" style="--fill:#B79CFF;--shade:#7D5BE0;--cheek:#8A68E8"><use href="#b-shout"/><use href="#f-shock"/></g>
             <text class="cap c-oneword" x="160" y="108" data-words="WAIT|WHAT|DID|YOU|JUST|SAY">WHAT</text>
           </svg>
         </div>
@@ -560,8 +543,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
         <div class="demo" role="img" aria-label="A caption sliding between the bottom, middle and top of a video, snapping at each.">
           <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
             <use href="#bg-hills"/>
-            <use href="#blob" x="92" y="40" width="136" height="150" style="--blob:#FF8A3D;--shade:#E0651A"/>
-            <use href="#face-flat" x="92" y="40" width="136" height="150" style="--shade:#E0651A"/>
+            <g transform="translate(160 80) rotate(3)" style="--fill:#FF8A3D;--shade:#D4590F;--cheek:#E0651A"><use href="#b-oval"/><use href="#f-sweet"/></g>
           </svg>
           <span class="snap" style="top:17%" aria-hidden="true"></span><span class="snap" style="top:50%" aria-hidden="true"></span><span class="snap" style="top:83%" aria-hidden="true"></span>
           <span class="hcap drag-cap" aria-hidden="true">Put me anywhere</span>
@@ -584,11 +566,10 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
       </article>
 
       <article class="card sticker">
-        <div class="demo" role="img" aria-label="A silent, unimpressed green blob with a caption added by hand, and a Command-N key.">
+        <div class="demo" role="img" aria-label="A silent, straight-faced mint thought bubble with a caption added by hand, and a Command-N key.">
           <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
             <use href="#bg-burst"/>
-            <use href="#blob" x="92" y="40" width="136" height="150" style="--blob:#6EE7C8;--shade:#2FBF9B"/>
-            <use href="#face-smug" x="92" y="40" width="136" height="150" style="--shade:#2FBF9B"/>
+            <g transform="translate(160 62)" style="--fill:#6EE7C8;--shade:#25A888;--cheek:#2FBF9B"><use href="#b-cloud-r"/><use href="#f-flat"/></g>
             <text class="cap c-meme" x="160" y="164" style="font-size:24px">(SAYS NOTHING. MEANS IT.)</text>
           </svg>
           <span class="keycap" aria-hidden="true">&#8984;N</span>
@@ -601,8 +582,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
         <div class="demo" id="cropDemo" data-shape="9:16" role="img" aria-label="A crop frame switching between 16:9, 1:1, 9:16 and 4:5, with the caption re-wrapping to stay inside it.">
           <svg class="scene" viewBox="0 0 320 180" aria-hidden="true">
             <use href="#bg-room"/>
-            <use href="#blob" x="92" y="30" width="136" height="150" style="--blob:#FFD84A;--shade:#F0A800"/>
-            <use href="#face-happy" x="92" y="30" width="136" height="150"/>
+            <g transform="translate(160 66) scale(0.78)" style="--fill:#FFD84A;--shade:#E89B00;--cheek:#F0A800"><use href="#b-box"/><use href="#f-happy"/></g>
           </svg>
           <span class="crop-frame" aria-hidden="true"><span class="hcap">Still fits</span></span>
           <span class="crop-tag" aria-hidden="true">9:16</span>
@@ -617,8 +597,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
           <span class="bubble me" aria-hidden="true">
             <svg viewBox="0 0 320 180">
               <use href="#bg-night"/>
-              <use href="#blob" x="92" y="34" width="136" height="150"/>
-              <use href="#face-smug" x="92" y="34" width="136" height="150"/>
+              <g transform="translate(160 58) rotate(3)" style="--fill:#FF5D8F;--shade:#C4285F;--cheek:#E23E77"><use href="#b-round-r"/><use href="#f-pout"/></g>
               <text class="cap c-meme" x="160" y="166" style="font-size:36px">NO.</text>
             </svg>
             <small>clip-captioned.mp4 &middot; 720p</small>
@@ -641,57 +620,57 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
     <ul class="gallery">
       <li>
         <div class="tile" role="img" aria-label="Sample: bold white text with a black outline at the bottom, reading: That's what I said.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><use href="#blob" x="92" y="36" width="136" height="150"/><use href="#face-flat" x="92" y="36" width="136" height="150"/><text class="cap c-classic" x="160" y="163">That's what I said.</text></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><g transform="translate(160 62) rotate(-3)" style="--fill:#FF5D8F;--shade:#C4285F;--cheek:#E23E77"><use href="#b-oval-r"/><use href="#f-flat"/></g><text class="cap c-classic" x="160" y="163">That's what I said.</text></svg>
         </div>
         <h3>Classic</h3><p>Helvetica Neue Bold, white on a black outline.</p>
       </li>
       <li>
         <div class="tile" role="img" aria-label="Sample: Impact capitals with a black outline at the top, reading: When the wifi drops.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-burst"/><use href="#blob" x="92" y="44" width="136" height="150" style="--blob:#7CCBFF"/><use href="#face-shock" x="92" y="44" width="136" height="150"/><text class="cap c-meme" x="160" y="36">WHEN THE WIFI DROPS</text></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-burst"/><g transform="translate(160 108) scale(0.9)" style="--fill:#7CCBFF;--shade:#2F8FCC;--cheek:#3F9ED9"><use href="#b-shout-r"/><use href="#f-shock"/></g><text class="cap c-meme" x="160" y="36">WHEN THE WIFI DROPS</text></svg>
         </div>
         <h3>Meme</h3><p>Impact, all caps, up top. You know the one.</p>
       </li>
       <li>
         <div class="tile" role="img" aria-label="Sample: heavy rounded text, reading: No thoughts, just vibes.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-hills"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#B79CFF"/><use href="#face-happy" x="92" y="36" width="136" height="150"/><text class="cap c-rounded" x="160" y="163">No thoughts, just vibes.</text></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-hills"/><g transform="translate(160 62)" style="--fill:#B79CFF;--shade:#7D5BE0;--cheek:#8A68E8"><use href="#b-cloud"/><use href="#f-joy"/></g><text class="cap c-rounded" x="160" y="163">No thoughts, just vibes.</text></svg>
         </div>
         <h3>Rounded</h3><p>The system's rounded face. Friendly.</p>
       </li>
       <li>
-        <div class="tile" role="img" aria-label="Sample: marker-pen lettering, reading: Trust me, I'm a blob.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-night"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#6EE7C8;--shade:#2FBF9B"/><use href="#face-smug" x="92" y="36" width="136" height="150" style="--shade:#2FBF9B"/><text class="cap c-marker" x="160" y="163">Trust me, I'm a blob.</text></svg>
+        <div class="tile" role="img" aria-label="Sample: marker-pen lettering, reading: Trust me, I'm a bubble.">
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-night"/><g transform="translate(166 60) rotate(4)" style="--fill:#6EE7C8;--shade:#25A888;--cheek:#2FBF9B"><use href="#b-round-r"/><use href="#f-sweet"/></g><text class="cap c-marker" x="160" y="163">Trust me, I'm a bubble.</text></svg>
         </div>
         <h3>Marker</h3><p>Marker Felt, like you wrote it on the fridge.</p>
       </li>
       <li>
         <div class="tile" role="img" aria-label="Sample: bold typewriter lettering, reading: Dear diary: yikes.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#FF8A3D"/><use href="#face-shock" x="92" y="36" width="136" height="150"/><text class="cap c-type" x="160" y="163">Dear diary: yikes.</text></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><g transform="translate(164 64) rotate(-3) scale(1.1)" style="--fill:#FF8A3D;--shade:#D4590F;--cheek:#E0651A"><use href="#b-whisper"/><use href="#f-shock"/></g><text class="cap c-type" x="160" y="163">Dear diary: yikes.</text></svg>
         </div>
         <h3>Typewriter</h3><p>American Typewriter, for dramatic readings.</p>
       </li>
       <li>
         <div class="tile" role="img" aria-label="Sample: condensed extra-bold poster lettering, reading: Absolutely not.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-burst"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#FFD84A;--shade:#F0A800"/><use href="#face-flat" x="92" y="36" width="136" height="150" style="--shade:#F0A800"/><text class="cap c-poster" x="160" y="164">Absolutely not.</text></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-burst"/><g transform="translate(160 60) rotate(-2)" style="--fill:#FFD84A;--shade:#E89B00;--cheek:#F0A800"><use href="#b-box"/><use href="#f-pout"/></g><text class="cap c-poster" x="160" y="164">Absolutely not.</text></svg>
         </div>
         <h3>Poster</h3><p>Futura Condensed ExtraBold. Coming this summer.</p>
       </li>
       <li>
         <div class="tile" role="img" aria-label="Sample: white text in a see-through black rounded box, reading: He said what now?">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-hills"/><use href="#blob" x="92" y="30" width="136" height="150"/><use href="#face-shock" x="92" y="30" width="136" height="150"/></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-hills"/><g transform="translate(160 58) rotate(3) scale(0.95)" style="--fill:#fff;--shade:#7CCBFF;--cheek:#FF8FB0"><use href="#b-oval"/><use href="#f-shock"/></g></svg>
           <span class="box" aria-hidden="true">He said what now?</span>
         </div>
         <h3>Boxed</h3><p>White text in a see-through black box.</p>
       </li>
       <li>
         <div class="tile" role="img" aria-label="Sample: black rounded text in a white box, reading: Breaking: it's Monday.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-night"/><use href="#blob" x="92" y="30" width="136" height="150" style="--blob:#7CCBFF;--shade:#3F9ED9"/><use href="#face-flat" x="92" y="30" width="136" height="150" style="--shade:#3F9ED9"/></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-night"/><g transform="translate(160 56) rotate(2) scale(0.95)" style="--fill:#7CCBFF;--shade:#2F8FCC;--cheek:#3F9ED9"><use href="#b-box"/><use href="#f-flat"/></g></svg>
           <span class="box hl" aria-hidden="true">Breaking: it's Monday.</span>
         </div>
         <h3>Highlight</h3><p>Black on a white box, like a sticky label.</p>
       </li>
       <li>
         <div class="tile" role="img" aria-label="Sample: one huge rounded word in capitals across the middle, reading: Nope.">
-          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><use href="#blob" x="92" y="36" width="136" height="150" style="--blob:#B79CFF;--shade:#8A68E8"/><use href="#face-smug" x="92" y="36" width="136" height="150" style="--shade:#8A68E8"/><text class="cap c-oneword" x="160" y="108" data-words="NOPE|NOT|TODAY|PAL">NOPE</text></svg>
+          <svg viewBox="0 0 320 180" aria-hidden="true"><use href="#bg-room"/><g transform="translate(160 33) scale(0.68)" style="--fill:#B79CFF;--shade:#7D5BE0;--cheek:#8A68E8"><use href="#b-whisper-r"/><use href="#f-pout"/></g><text class="cap c-oneword" x="160" y="108" data-words="NOPE|NOT|TODAY|PAL">NOPE</text></svg>
         </div>
         <h3>One Word</h3><p>Huge, centred, one word at a time.</p>
       </li>
@@ -791,7 +770,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
 
 <section class="final" aria-labelledby="final-h">
   <div class="wrap">
-    <img src="assets/icon-512.png" width="210" height="210" alt="Subya's icon: a pink blob giving smug side-eye on a yellow sunburst, captioned SUB YA.">
+    <img src="assets/icon-512.png" width="210" height="210" alt="Subya's icon: a beaming white speech bubble with dot eyes and pink cheeks on a yellow sunburst, captioned SUB YA.">
     <h2 id="final-h" class="display outlined">Go on. Sub ya.</h2>
     <a class="btn" href="https://github.com/duggan/Subya/releases/latest/download/Subya.dmg">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6.5 10.5 12 16l5.5-5.5M4 21h16"/></svg>
