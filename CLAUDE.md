@@ -244,6 +244,12 @@ playful rather than slick.
   pre-release. Bump `CFBundleShortVersionString` and `CFBundleVersion` in
   `Resources/App-Info.plist` before tagging. Both workflows run on `macos-26`, since
   the code needs the macOS 26 SDK.
+- `Resources/demo/`: makes the website's demo video and the README's GIF (see its
+  README): an original Bubble Buddy clip voiced with OpenRouter's `openai/gpt-audio`, the
+  app's scripted tour (`--demo <video> [--demo-out <mp4>] [--demo-background]`,
+  `DemoTour.swift`) recorded behind other windows by a ScreenCaptureKit window
+  recorder, and an ffmpeg edit with the clip's sound under each playback. Put value-less
+  launch flags last: one followed by a `-key value` default stops the launch handler.
 - `Resources/art/make_icons.py` draws the artwork as SVG. The mascot is Bubble Buddy
   (`bubble_buddy()`): a chubby white speech bubble with a pink sticker shadow, dot
   eyes, pink cheeks and a beaming open smile, on a yellow comic sunburst, with "SUB YA"

@@ -24,3 +24,9 @@ __pycache__/
 # Test videos
 *.mp4
 *.mov
+
+# Except the website's demo video
+!docs/assets/*.mp4
+
+# Demo tooling
+node_modules/

@@ -65,6 +65,9 @@ struct SubyaApp: App {
     ///                        profiling with `sample`)
     ///   --settings <tab>     open Settings on "general" or "styles"; with --snapshot, the
     ///                        image is of the Settings window (works without --open)
+    ///   --demo <video>       run the scripted tour used to record the website's demo
+    ///                        (see DemoTour); --demo-out <mp4> sets where it exports;
+    ///                        --demo-background keeps it behind other windows
     ///   --snapshot <png>     after loading, save an image of the window (for checking layout
     ///                        without screen-recording permission; video frames come out black)
     @MainActor
@@ -81,6 +84,13 @@ struct SubyaApp: App {
                let window = NSApp.windows.first(where: { $0.isVisible && $0.title != "Subya" }) {
                 Self.snapshot(window, to: path)
             }
+            return
+        }
+        if let path = value(after: "--demo") {
+            try? await Task.sleep(for: .seconds(1))
+            let output = value(after: "--demo-out") ?? NSTemporaryDirectory() + "subya-demo-export.mp4"
+            await DemoTour.run(model: model, video: URL(fileURLWithPath: path), output: URL(fileURLWithPath: output),
+                               background: args.contains("--demo-background"))
             return
         }
         guard let path = value(after: "--open") else { return }

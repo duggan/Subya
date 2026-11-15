@@ -28,9 +28,11 @@ Drop a clip on the window. Subya transcribes it **on your Mac**, splits the spee
 punchy caption lines, and shows you exactly what you'll get. Fix a word, pick a look,
 export. That's it.
 
-<!-- Screenshot: replace with a real one before release, e.g.
-<p align="center"><img src="docs/assets/screenshot.png" alt="Subya's window: video preview with captions, timeline, and the caption list" width="900"></p>
--->
+<p align="center">
+  <a href="https://duggan.github.io/Subya/#demo"><img src="docs/assets/demo.gif" width="800"
+     alt="Subya captioning a cartoon clip: the captions play, a line gets edited, the style switches to Meme and then one word at a time, and the video is cropped to 9:16"></a>
+  <br><sub><a href="https://duggan.github.io/Subya/#demo">Watch the full demo, with sound</a></sub>
+</p>
 
 ## What it does
 

@@ -80,6 +80,10 @@ section { padding: clamp(3.5rem, 8vw, 6rem) 0; border-top: 4px solid var(--ink);
 .section-head { max-width: 46rem; margin-bottom: 2.5rem; }
 .section-head h2 { font-size: clamp(2.4rem, 6vw, 4rem); margin-bottom: .9rem; }
 .section-head p { font-size: 1.15rem; }
+.demo-video { margin: 3.5rem auto 0; max-width: 960px; }
+.demo-video video { display: block; width: 100%; height: auto; border: 4px solid var(--ink); border-radius: 18px;
+  box-shadow: 8px 8px 0 var(--ink); background: var(--ink); }
+.demo-video figcaption { margin-top: 1.1rem; font-weight: 600; text-align: center; }
 .dots { background-image: radial-gradient(circle, rgba(31, 35, 41, .13) 2.5px, transparent 3px); background-size: 16px 16px; }
 
 /* ---------- caption looks (SVG text, round joins like the app) ---------- */
@@ -377,6 +381,7 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
         <img class="word" src="assets/wordmark.svg" width="330" height="130" alt="Subya">
       </a>
       <nav aria-label="Sections">
+        <a href="#demo">Demo</a>
         <a href="#features">Features</a>
         <a href="#styles">Styles</a>
         <a href="#cli">Command line</a>
@@ -517,6 +522,14 @@ footer :focus-visible { outline-color: #fff; box-shadow: none; }
         <p>You get a new <code>-captioned.mp4</code> next to the original, captions drawn into every frame. Your original is never touched.</p>
       </li>
     </ol>
+    <figure id="demo" class="demo-video">
+      <video controls playsinline preload="metadata" poster="assets/demo-poster.jpg" width="1280" height="800"
+             aria-describedby="demo-cap">
+        <source src="assets/demo.mp4" type="video/mp4">
+        <a href="assets/demo.mp4">Watch the demo video</a>
+      </video>
+      <figcaption id="demo-cap">The real thing, start to finish: a clip goes in and gets transcribed, a line gets a fix, then Meme style, one word at a time, the captions slide down, a 9:16 crop, and export. Sound on for Bubble Buddy.</figcaption>
+    </figure>
   </div>
 </section>
 
