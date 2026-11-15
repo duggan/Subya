@@ -58,8 +58,8 @@ around).
   `Subya-dmg` artifact from the run. Nothing is published.
 - **Test pre-release:** push a branch named `test/<anything>`.
 - **Release:** bump `CFBundleShortVersionString` and `CFBundleVersion` in
-  `Resources/App-Info.plist`, commit, then `git tag v0.1.0 && git push --tags`.
-  A tag with a suffix, like `v0.2.0-rc1`, makes a pre-release.
+  `Resources/App-Info.plist`, commit, then `git tag v1.2.3 && git push origin v1.2.3`.
+  A tag with a suffix, like `v1.3.0-rc1`, makes a pre-release.
 
 The workflows run on `macos-26`, because the code needs the macOS 26 SDK. If GitHub
 reports that label as unavailable, switch `runs-on` to whichever runner image ships
