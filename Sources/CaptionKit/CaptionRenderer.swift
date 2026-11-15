@@ -236,11 +236,15 @@ public enum CaptionRenderer {
         })
     }
 
-    public static func export(asset: AVAsset, composition: AVVideoComposition, to url: URL) async throws {
+    /// Exports the video with the composition's captions. With a `trim`, only that part is
+    /// written (the composition still sees source times, so captions need no shifting).
+    public static func export(asset: AVAsset, composition: AVVideoComposition, trim: Trim? = nil,
+                              to url: URL) async throws {
         guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
             throw CaptionError.exportFailed
         }
         session.videoComposition = composition
+        if let trim { session.timeRange = trim.timeRange }
         session.shouldOptimizeForNetworkUse = true
         try? FileManager.default.removeItem(at: url)
         try await session.export(to: url, as: .mp4)

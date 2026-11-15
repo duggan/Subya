@@ -183,6 +183,30 @@ struct VideoControls: View {
     }
 }
 
+/// The Trim button, beside Crop. Shows the clip's length once trimmed, and lights up
+/// while the trim is being edited.
+struct TrimButton: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
+        Button { model.isTrimming ? model.finishTrimming() : model.startTrimming() } label: {
+            Label(model.isTrimmed ? "Trim \(TransportBar.format(model.trim.length))" : "Trim",
+                  systemImage: "timeline.selection")
+                .font(.callout.weight(.medium))
+                .foregroundStyle(model.isTrimming ? Color.black : .primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(model.isTrimming ? AnyShapeStyle(Color.yellow) : AnyShapeStyle(.ultraThinMaterial),
+                            in: Capsule())
+                .overlay(Capsule().strokeBorder(.white.opacity(0.25)))
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .disabled(model.isBusy && !model.isTranscribing)
+        .help(model.isTrimming ? "Finish trimming" : "Keep only part of the video (⌘T)")
+    }
+}
+
 /// The Crop button, pinned to the top-left corner of the video panel. Shows the crop once
 /// one is set.
 struct CropButton: View {

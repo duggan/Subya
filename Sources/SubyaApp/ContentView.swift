@@ -22,7 +22,13 @@ struct ContentView: View {
                                     if model.isCropping { CropOverlay(model: model) } else { VideoControls(model: model) }
                                 }
                                 .overlay(alignment: .topLeading) {
-                                    if !model.isCropping { CropButton(model: model).padding(12) }
+                                    if !model.isCropping {
+                                        HStack(spacing: 8) {
+                                            CropButton(model: model)
+                                            TrimButton(model: model)
+                                        }
+                                        .padding(12)
+                                    }
                                 }
                                 .overlay(alignment: .top) { if model.isCropping { CropToolbar(model: model) } }
                                 .layoutPriority(-1)
@@ -137,14 +143,19 @@ struct ContentView: View {
     private var captionList: some View {
         ScrollViewReader { proxy in
         List {
+            // Only the captions in the trimmed clip, with times counted from its start.
             ForEach($model.captions) { $cap in
+                if model.isTrimming || model.trim.shows(cap) {
+                let origin = model.timelineRange.lowerBound
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Button { model.play(cap) } label: { Image(systemName: "play.circle") }
                         .buttonStyle(.borderless).help("Play from this caption")
-                    TextField("Start", value: $cap.start, format: .number.precision(.fractionLength(2)))
+                    TextField("Start", value: Binding(get: { cap.start - origin }, set: { cap.start = $0 + origin }),
+                              format: .number.precision(.fractionLength(2)))
                         .frame(width: 52).monospacedDigit()
                     Text("–").foregroundStyle(.secondary)
-                    TextField("End", value: $cap.end, format: .number.precision(.fractionLength(2)))
+                    TextField("End", value: Binding(get: { cap.end - origin }, set: { cap.end = $0 + origin }),
+                              format: .number.precision(.fractionLength(2)))
                         .frame(width: 52).monospacedDigit()
                     TextField("Caption", text: $cap.text, axis: .vertical)
                         .focused($focusedCaption, equals: cap.id)
@@ -154,6 +165,7 @@ struct ContentView: View {
                 .textFieldStyle(.roundedBorder)
                 .padding(.vertical, 2)
                 .listRowBackground(isShowing(cap) ? Color.accentColor.opacity(0.18) : Color.clear)
+                }
             }
         }
         .overlay {
@@ -250,10 +262,14 @@ private struct InitialWindowSize: NSViewRepresentable {
 
 /// Play/pause, the scrubber, the time, timeline zoom and "+ Line". A view of its own so
 /// that only it re-renders as the playhead moves, not the whole window.
-private struct TransportBar: View {
+struct TransportBar: View {
     @Bindable var model: AppModel
 
     var body: some View {
+        if model.isTrimming { trimBar } else { transport }
+    }
+
+    private var transport: some View {
         HStack(spacing: 10) {
             Button { model.togglePlay() } label: {
                 Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
@@ -262,15 +278,49 @@ private struct TransportBar: View {
             .buttonStyle(.borderless)
             .font(.title3)
             .help(model.isPlaying ? "Pause" : "Play")
+            let range = model.timelineRange
             Slider(value: Binding(get: { model.currentTime }, set: { model.seek(to: $0) }),
-                   in: 0...max(model.duration, 0.1))
-            Text("\(Self.format(model.currentTime)) / \(Self.format(model.duration))")
+                   in: range.lowerBound...max(range.upperBound, range.lowerBound + 0.1))
+            // Times count from the trim's start, as in the exported clip.
+            Text("\(Self.format(model.currentTime - range.lowerBound)) / \(Self.format(range.upperBound - range.lowerBound))")
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
             zoomControl
             Button { model.addCaption() } label: { Label("Line", systemImage: "plus") }
                 .disabled(model.isBusy)
                 .help("Add a caption line at the playhead (⌘N)")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
+    /// Replaces the transport while trimming: the clip's length and where it starts, and
+    /// Reset, Cancel and Done.
+    private var trimBar: some View {
+        HStack(spacing: 10) {
+            Button { model.togglePlay() } label: {
+                Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
+                    .frame(width: 18)
+            }
+            .buttonStyle(.borderless)
+            .font(.title3)
+            Image(systemName: "timeline.selection").foregroundStyle(.yellow)
+            Text("Drag the yellow ends to keep part of the video.")
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .layoutPriority(-1)
+            Spacer(minLength: 8)
+            Text("\(Self.format(model.trim.start))–\(Self.format(model.trim.end))  (\(Self.format(model.trim.length)))")
+                .monospacedDigit()
+                .fixedSize()
+            zoomControl
+            Button("Reset") { model.resetTrim() }
+                .disabled(!model.isTrimmed)
+            Button("Cancel") { model.finishTrimming(keep: false) }
+                .keyboardShortcut(.cancelAction)
+            Button("Done") { model.finishTrimming() }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -294,7 +344,7 @@ private struct TransportBar: View {
         .help("Zoom the timeline (⌘+ and ⌘−, ⌘0 to fit, or pinch on it)")
     }
 
-    private static func format(_ t: Double) -> String {
+    static func format(_ t: Double) -> String {
         let t = max(0, t.isFinite ? t : 0)
         return String(format: "%d:%04.1f", Int(t) / 60, t.truncatingRemainder(dividingBy: 60))
     }

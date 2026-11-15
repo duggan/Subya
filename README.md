@@ -53,7 +53,13 @@ needs macOS 26 or later.
 6. To crop, click **Crop** in the top-left corner of the video panel. Pick a shape (1:1, 9:16 for Stories, 4:5, 16:9,
    the original, or free), drag the frame to move it and its corners to resize it, then
    click **Done**. Captions are placed inside the cropped frame.
-7. Click **Export…** (⌘E).
+7. To keep only part of the video, click **Trim** next to Crop (or ⌘T) and drag the
+   yellow ends of the timeline, as in Photos, then click **Done**. The timeline, the
+   times and playback then cover just that part, and only it is exported. You can trim
+   while a long video is still being transcribed: Subya then transcribes only the
+   trimmed part, which is much quicker. If you later widen the trim, the new parts are
+   transcribed and their captions added.
+8. Click **Export…** (⌘E).
 
 ## Settings
 
@@ -81,7 +87,9 @@ swift run subya burn clip.mp4 clip-captioned.mp4 --captions clip.srt
 Without `--captions`, `burn` transcribes first. `--style <name>` picks a style, including
 your own from Settings (`subya styles` lists them). `--position top|middle|bottom` (or a number from 0, top, to 1, bottom),
 `--caps` or `--no-caps`, `--scale 1.3` (text 30% bigger) and `--words` (one word at a
-time) adjust it. `--crop 9:16` (or 1:1, 4:5, 16:9) crops to the centre of the frame. `--small` saves at
+time) adjust it. `--crop 9:16` (or 1:1, 4:5, 16:9) crops to the centre of the frame. `--trim 1:05-1:20` keeps only that
+part (seconds, m:ss or h:mm:ss; `30-` means from 30 s to the end), and transcribes only
+it. `--small` saves at
 720p, and `--language fr-FR` transcribes in another language.
 
 ## Development

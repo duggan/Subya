@@ -202,3 +202,14 @@ extension Array where Element == Caption {
         self[i].wordStarts = starts
     }
 }
+
+extension Array where Element == Caption {
+    /// Adds captions from another stretch of the transcript, kept in order. Where one runs
+    /// into the next, it ends as the next starts.
+    public mutating func merge(_ new: [Caption]) {
+        self = (self + new).sorted { $0.start < $1.start }
+        for i in indices.dropLast() where self[i].end > self[i + 1].start {
+            self[i].end = Swift.max(self[i + 1].start, self[i].start + 0.05)
+        }
+    }
+}

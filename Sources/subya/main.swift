@@ -11,7 +11,8 @@ let usage = """
     usage: subya transcribe <video> [--srt] [--language <id>]
            subya burn <video> <output.mp4> [--captions <file.srt>] [--language <id>]
                       [--style <name>] [--position top|middle|bottom|0…1] [--caps|--no-caps]
-                      [--scale <n>] [--words|--lines] [--crop <aspect>] [--small]
+                      [--scale <n>] [--words|--lines] [--crop <aspect>] [--trim <from-to>]
+                      [--small]
            subya styles
 
     transcribe  Print the captions Subya would make (as SRT with --srt).
@@ -21,6 +22,9 @@ let usage = """
                 Settings (default: Classic). --position, --caps, --scale and --words
                 (one word at a time) or --lines override it.
                 --crop cuts the largest centred 1:1, 9:16, 4:5 or 16:9 frame.
+                --trim keeps only part of the video: seconds, m:ss or h:mm:ss,
+                either side optional (1:05-1:20, 30-, -12.5). Transcribes only
+                that part; --captions times are in the original video's time.
                 --small scales the video down to 720p for messaging.
     styles      List the style names --style accepts.
     --language  A locale like en-IE or fr-FR (default: this Mac's language).
@@ -51,11 +55,11 @@ func flag(_ name: String) -> Bool {
     return true
 }
 
-func transcribe(_ url: URL, language: String?) async throws -> [Caption] {
+func transcribe(_ url: URL, language: String?, trim: Trim? = nil) async throws -> [Caption] {
     let locale = language.map { Locale(identifier: $0) } ?? .current
-    let words = try await Transcriber.words(for: url, locale: locale) { log($0) }
+    let words = try await Transcriber.words(for: url, locale: locale, range: trim) { log($0) }
     let duration = try await AVURLAsset(url: url).load(.duration).seconds
-    return Chunker.captions(from: words, videoEnd: duration)
+    return Chunker.captions(from: words, videoEnd: trim?.end ?? duration)
 }
 
 func describe(_ captions: [Caption]) -> String {
@@ -75,6 +79,7 @@ do {
         let captionsPath = option("--captions")
         let language = option("--language")
         let small = flag("--small")
+        let trimText = option("--trim")
         var cropAspect: Crop.Aspect?
         if let value = option("--crop") {
             guard let aspect = Crop.Aspect(name: value), aspect != .free else {
@@ -109,11 +114,19 @@ do {
         if flag("--no-caps") { style.allCaps = false }
         guard args.count == 3 else { fail(usage) }
         let input = URL(fileURLWithPath: args[1]), output = URL(fileURLWithPath: args[2])
+        var trim: Trim?
+        if let trimText {
+            let duration = try await AVURLAsset(url: input).load(.duration).seconds
+            guard let parsed = Trim(parsing: trimText, duration: duration) else {
+                fail("--trim must be like 1:05-1:20, 30- or -12.5, at least \(Trim.minLength) s long, inside the video")
+            }
+            trim = parsed
+        }
         let captions: [Caption]
         if let captionsPath {
             captions = try SRT.parse(String(contentsOfFile: captionsPath, encoding: .utf8))
         } else {
-            captions = try await transcribe(input, language: language)
+            captions = try await transcribe(input, language: language, trim: trim)
         }
         log(describe(captions))
 
@@ -129,7 +142,7 @@ do {
                                                                 maxLongSide: small ? 1280 : nil)
         overlay.update(captions, size: composition.renderSize, style: style)
         log("Exporting…")
-        try await CaptionRenderer.export(asset: asset, composition: composition, to: output)
+        try await CaptionRenderer.export(asset: asset, composition: composition, trim: trim, to: output)
         log("Wrote \(output.path)")
 
     case "styles":

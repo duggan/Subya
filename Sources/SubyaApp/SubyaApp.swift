@@ -34,6 +34,10 @@ struct SubyaApp: App {
                     .disabled(model.player == nil || model.isBusy)
                 Button("Re-split Captions…") { model.resplit() }
                     .disabled(model.words.isEmpty || model.isBusy)
+                Divider()
+                Button("Trim Video…") { model.startTrimming() }
+                    .keyboardShortcut("t")
+                    .disabled(model.player == nil || model.isTrimming || (model.isBusy && !model.isTranscribing))
             }
         }
 
@@ -48,6 +52,8 @@ struct SubyaApp: App {
     ///   --zoom <n>           after loading, zoom the timeline in n times
     ///   --crop <shape>       after loading, crop to the centred 1:1, 9:16, 4:5 or 16:9
     ///   --crop-edit          after loading, open the crop editor
+    ///   --trim <from-to>     after loading, trim (as in `subya burn --trim`, e.g. 4-11)
+    ///   --trim-edit          leave the trim editor open (alone, or after --trim)
     ///   --hover-controls     show the caption position track as if the pointer were over
     ///                        the video
     ///   --simulate-drag <s>  after loading, move the second caption back and forth 60
@@ -77,11 +83,25 @@ struct SubyaApp: App {
         guard let path = value(after: "--open") else { return }
         model.open(URL(fileURLWithPath: path))
 
-        // Wait for loading and transcription to finish.
+        // Trim as soon as the video is in, as someone would while it transcribes (which
+        // restarts transcription for just the trimmed part).
+        let started = Date()
         try? await Task.sleep(for: .milliseconds(300))
-        for _ in 0..<600 where model.isBusy || model.player == nil {
-            try? await Task.sleep(for: .milliseconds(100))
+        while model.player == nil || model.duration == 0 { try? await Task.sleep(for: .milliseconds(50)) }
+        if let text = value(after: "--trim"), let trim = Trim(parsing: text, duration: model.duration) {
+            model.startTrimming()
+            model.setTrimEdge(.start, to: trim.start)
+            model.setTrimEdge(.end, to: trim.end)
+            if !args.contains("--trim-edit") { model.finishTrimming() }
+        } else if args.contains("--trim-edit") {
+            model.startTrimming()
         }
+
+        // Wait for loading and transcription to finish.
+        while model.isBusy { try? await Task.sleep(for: .milliseconds(100)) }
+        print(String(format: "loaded in %.1f s: %d captions, %.2f–%.2f s", Date().timeIntervalSince(started),
+                     model.captions.count, model.captions.first?.start ?? 0, model.captions.last?.end ?? 0))
+        fflush(stdout)
         if let aspect = value(after: "--crop").flatMap(Crop.Aspect.init(name:)) {
             model.startCropping()
             model.setCropAspect(aspect)
@@ -96,8 +116,8 @@ struct SubyaApp: App {
             model.seek(to: seconds)
             try? await Task.sleep(for: .milliseconds(300))
             model.addCaption()
-        } else {
-            model.seek(to: 4.5)
+        } else if !model.isTrimming {
+            model.seek(to: model.isTrimmed ? model.trim.start + 0.5 : 4.5)
         }
         if let seconds = value(after: "--simulate-drag").flatMap(Double.init) {
             await simulateDrag(seconds: seconds)

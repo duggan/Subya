@@ -89,6 +89,22 @@ playful rather than slick.
   export. Shapes: Free, Original, 1:1, 9:16, 4:5, 16:9; picking one snaps to the
   largest centred crop of that shape, and corner drags keep it. The crop belongs to
   the open video and isn't saved.
+- **Trim** (`Trim`): the part of the video kept, in source seconds (at least 0.5 s).
+  Captions keep source times; `CaptionRenderer.export(trim:)` sets the export session's
+  `timeRange`, and the CI handler still sees source times (checked: output starts at 0
+  with the right captions), so nothing is shifted. In the app (`AppModel`), Trim (⌘T, or the `TrimButton` beside Crop, yellow while editing)
+  shows the whole video on the timeline with the kept part framed in yellow (grips at
+  its ends, outside dimmed, captions dimmed and inert); otherwise the timeline,
+  scrubber, ruler, times and caption list show only `timelineRange` (the trim), with
+  times counted from its start, and playback stops at its end
+  (`forwardPlaybackEndTime`). The trim belongs to the open video and isn't saved.
+  Transcription runs as a cancellable task: finishing a trim while it runs cancels it
+  and transcribes just the trim (`Transcriber.words(range:)` exports only that audio
+  and offsets word times), which matters for big videos (20 min: 21 s whole, 1.3 s
+  for a 20 s trim). `transcribed` lists the parts done; a wider trim later transcribes
+  only `Trim.missing(from:)` and `merge`s the new captions in. Re-split rebuilds per
+  transcribed part. `startTranscription` keeps `isBusy`/`isTranscribing` set until the
+  newest task finishes, so a restart doesn't flicker them off.
 - **Preferences** (`Pref` in `Preferences.swift`): UserDefaults keys with registered
   defaults, read where they're used: `transcriptionLanguage` ("" = system),
   `maxLineLength`, `splitPause`, `linger`, `exportLocation`, `exportFolder`,
@@ -113,6 +129,8 @@ playful rather than slick.
   - `StyleLibrary.swift`: loading and saving custom styles, lookup by name.
   - `ExportNaming.swift`: export file names and the scaled-down export size.
   - `Crop.swift`: the crop rectangle, shape presets, moving and resizing.
+  - `Trim.swift`: the trim range, edge rules, parsing `1:05-1:20`, and the parts not
+    yet transcribed.
   - `CaptionRenderer.swift`: caption images, `CaptionOverlay` (lock-protected,
     read and rendered on the compositor's thread), the video composition, and export.
 - `Sources/SubyaApp/`: the SwiftUI app: the main window and Settings.
@@ -165,7 +183,8 @@ playful rather than slick.
     plays and pauses. The track's ends are estimated from the font size; drags work
     on changes, so the estimate only affects where the handle is drawn. `CropButton`
     (same file) is pinned to the top-left corner of the video panel and shows the crop
-    once one is set.
+    once one is set; `TrimButton` sits beside it, shows the clip's length once trimmed,
+    and is yellow while the trim is being edited (clicking it then finishes).
   - `CropOverlay.swift`: the crop editor drawn over the preview (dimmed outside the
     crop, thirds grid, drag inside to move, corners to resize) and its toolbar
     (shapes, Reset, Cancel, Done). While editing, the preview shows the whole frame
@@ -184,6 +203,10 @@ playful rather than slick.
   - Developer launch options: `--open <video>` loads a file as if dropped,
     `--add-line <seconds>` then adds a line there, `--zoom <n>` zooms the timeline,
     `--crop <shape>` crops (with `--crop-edit`, leaves the editor open),
+    `--trim <from-to>` trims as soon as the video is in, while it's still transcribing
+    (with `--trim-edit`, leaves the editor open; put value-less options like this last,
+    as a run with `--trim-edit --snapshot <png>` never ran the launch handler); after
+    loading, the app prints `loaded in … s: n captions, first–last s`,
     `--hover-controls` shows the position track as if hovered,
     `--simulate-drag <s>` moves the second caption back and forth 60 times a second
     through the drag path and prints how far the run loop fell behind (run the binary
@@ -197,12 +220,12 @@ playful rather than slick.
   the captions; `subya burn <video> <out.mp4> [--captions file.srt]` exports, with
   `--style <name>` (built-in or the user's own), `--position` (top, middle, bottom,
   or 0–1), `--caps`/`--no-caps`,
-  `--scale`, `--words`/`--lines`, `--crop 1:1|9:16|4:5|16:9` (centred) and `--small`
-  (720p). Both take `--language <id>`. `subya styles` lists
+  `--scale`, `--words`/`--lines`, `--crop 1:1|9:16|4:5|16:9` (centred), `--trim
+  <from-to>` (transcribes and exports only that part) and `--small` (720p). Both take `--language <id>`. `subya styles` lists
   style names. Transcribe to SRT, edit it, then burn with `--captions` to script fixes.
 - `Tests/CaptionKitTests/`: unit tests for grouping, inserting lines, timeline moves and
   resizes, word-at-a-time timing, SRT, word splitting, styles (built-ins, saving, lookup, font fallback),
-  export naming and sizes, crop presets, moves, resizes and pixel rects, and the renderer (positions, colours, outline, box, caps,
+  export naming and sizes, trims (edges, parsing, missing parts, merging), crop presets, moves, resizes and pixel rects, and the renderer (positions, colours, outline, box, caps,
   every built-in, style changes) (`swift test`). They don't need a speech model.
 - `Makefile`: `make run`, `test`, `icons`, `dmg` and `release`. It builds a
   universal app with a Developer ID signature and hardened runtime, not sandboxed,

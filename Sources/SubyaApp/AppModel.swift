@@ -97,6 +97,7 @@ final class AppModel {
 
     func startCropping() {
         guard player != nil, !isCropping else { return }
+        if isTrimming { finishTrimming() }
         player?.pause()
         cropBeforeEditing = crop
         isCropping = true
@@ -139,10 +140,134 @@ final class AppModel {
         }
     }
 
-    /// How far the timeline is zoomed in: 1 fits the whole video in view.
+    // MARK: Trim
+    //
+    // The part of the video to keep. While editing it, the timeline shows the whole video
+    // with the trim's ends to drag; otherwise it shows only the trimmed part, playback
+    // stays inside it, and export writes only that part. Captions keep source times.
+
+    private(set) var trim = Trim(start: 0, end: 0)
+    private(set) var isTrimming = false
+    @ObservationIgnored private var trimBeforeEditing = Trim(start: 0, end: 0)
+
+    var isTrimmed: Bool { !trim.isFull(duration: duration) }
+
+    /// The stretch of the video the timeline and scrubber show.
+    var timelineRange: ClosedRange<Double> { isTrimming ? 0...max(duration, 0) : trim.range }
+
+    func startTrimming() {
+        guard player != nil, !isTrimming else { return }
+        if isCropping { finishCropping() }
+        player?.pause()
+        trimBeforeEditing = trim
+        isTrimming = true
+        timelineZoom = 1
+        applyPlaybackLimits()
+    }
+
+    func finishTrimming(keep: Bool = true) {
+        guard isTrimming else { return }
+        if !keep { trim = trimBeforeEditing }
+        isTrimming = false
+        timelineZoom = 1
+        applyPlaybackLimits()
+        if !trim.range.contains(currentTime) { seek(to: trim.start) }
+        if keep, trim != trimBeforeEditing { transcribeTrim() }
+    }
+
+    func resetTrim() {
+        trim = .full(duration)
+    }
+
+    /// Drags one end of the trim; the preview shows the frame at that end.
+    func setTrimEdge(_ edge: CaptionEdge, to time: Double) {
+        trim = edge == .start ? trim.settingStart(time) : trim.settingEnd(time, duration: duration)
+        seek(to: edge == .start ? trim.start : max(trim.start, trim.end - 0.04))
+    }
+
+    /// Playback stops at the trim's end (and, playing backwards, its start).
+    private func applyPlaybackLimits() {
+        guard let item = player?.currentItem else { return }
+        let limited = !isTrimming && isTrimmed
+        item.forwardPlaybackEndTime = limited ? CMTime(seconds: trim.end, preferredTimescale: 600) : .invalid
+        item.reversePlaybackEndTime = limited ? CMTime(seconds: trim.start, preferredTimescale: 600) : .invalid
+    }
+
+    // MARK: Transcription
+    //
+    // Runs after loading, and can be cut short: finishing a trim while it's still going
+    // restarts it for just the trimmed part, which is much quicker for a long video. If a
+    // trim later grows past what's been transcribed, only the new parts are transcribed,
+    // and their captions are added to the edited ones.
+
+    private(set) var isTranscribing = false
+    @ObservationIgnored private var transcription: Task<Void, Never>?
+    /// Parts of the video transcribed so far.
+    @ObservationIgnored private var transcribed: [Trim] = []
+    @ObservationIgnored private var hasAudio = true
+
+    private func transcribeTrim() {
+        guard hasAudio, let url = videoURL else { return }
+        let running = transcription
+        // Cut a transcription of a bigger part short; if it can't stop, its result is kept.
+        if isTranscribing { running?.cancel() }
+        startTranscription {
+            await running?.value
+            for part in self.trim.missing(from: self.transcribed) where !Task.isCancelled && self.videoURL == url {
+                await self.transcribe(url, part: part)
+            }
+        }
+    }
+
+    /// Runs transcription work, busy until the newest such work is done (so a restart
+    /// doesn't flicker the busy state off in between).
+    @discardableResult
+    private func startTranscription(_ work: @escaping @MainActor () async -> Void) -> Task<Void, Never> {
+        isBusy = true
+        isTranscribing = true
+        let task = Task { await work() }
+        transcription = task
+        Task {
+            await task.value
+            if transcription == task {
+                isBusy = false
+                isTranscribing = false
+            }
+        }
+        return task
+    }
+
+    private func transcribe(_ url: URL, part: Trim) async {
+        let whole = part.isFull(duration: duration)
+        do {
+            let new = try await Transcriber.words(for: url, locale: Pref.locale, range: whole ? nil : part) { msg in
+                Task { @MainActor in self.status = msg }
+            }
+            guard videoURL == url else { return }
+            words = (words + new).sorted { $0.start < $1.start }
+            captions.merge(Pref.captions(from: new, videoEnd: part.end))
+            transcribed.append(part)
+        } catch CaptionError.noAudio {
+            hasAudio = false
+        } catch is CancellationError {
+            return
+        } catch {
+            if Task.isCancelled { return }
+            errorMessage = error.localizedDescription
+        }
+        status = if !captions.isEmpty {
+            "\(captions.count) captions. Edit any text, then Export."
+        } else {
+            "\(hasAudio ? "No speech found" : "No audio"). Add lines with + Line (⌘N)."
+        }
+    }
+
+    /// How far the timeline is zoomed in: 1 fits the whole video (or trim) in view.
     private(set) var timelineZoom: Double = 1
     /// Up to about 400 points per second on a 600-point timeline, so short words have room.
-    var maxTimelineZoom: Double { max(4, duration * 400 / 600) }
+    var maxTimelineZoom: Double {
+        max(4, (timelineRange.upperBound - timelineRange.lowerBound) * 400 / 600)
+    }
 
     func setTimelineZoom(_ zoom: Double) {
         timelineZoom = min(max(zoom, 1), maxTimelineZoom)
@@ -257,12 +382,17 @@ final class AppModel {
         crop = .full
         cropAspect = .free
         isCropping = false
+        transcription?.cancel()
+        transcription = nil
+        transcribed = []
+        hasAudio = true
+        isTrimming = false
         videoURL = url
-        defer { isBusy = false }
         do {
             let asset = AVURLAsset(url: url)
             self.asset = asset
             duration = try await asset.load(.duration).seconds
+            trim = .full(duration)
             let comp = try await CaptionRenderer.composition(for: asset, overlay: overlay)
             composition = comp
             frameSize = comp.renderSize
@@ -271,23 +401,12 @@ final class AppModel {
             item.videoComposition = comp
             attach(AVPlayer(playerItem: item))
 
-            // Silent clips are common for memes: load them with no captions, ready for
+            // Silent clips are common for memes: they load with no captions, ready for
             // lines added by hand, rather than failing.
-            var hasAudio = true
-            do {
-                words = try await Transcriber.words(for: url, locale: Pref.locale) { msg in
-                    Task { @MainActor in self.status = msg }
-                }
-            } catch CaptionError.noAudio {
-                hasAudio = false
-            }
-            captions = Pref.captions(from: words, videoEnd: duration)
-            status = if !captions.isEmpty {
-                "\(captions.count) captions. Edit any text, then Export."
-            } else {
-                "\(hasAudio ? "No speech found" : "No audio"). Add lines with + Line (⌘N)."
-            }
+            let whole = trim
+            await startTranscription { await self.transcribe(url, part: whole) }.value
         } catch {
+            isBusy = false
             errorMessage = error.localizedDescription
             status = ""
         }
@@ -382,7 +501,8 @@ final class AppModel {
         if isPlaying {
             player.pause()
         } else {
-            if currentTime >= duration - 0.05 { seek(to: 0) }
+            let range = timelineRange
+            if currentTime >= range.upperBound - 0.05 || currentTime < range.lowerBound { seek(to: range.lowerBound) }
             player.play()
         }
     }
@@ -440,7 +560,10 @@ final class AppModel {
         alert.addButton(withTitle: "Re-split")
         alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        captions = Pref.captions(from: words, videoEnd: duration)
+        captions = []
+        for part in transcribed.sorted(by: { $0.start < $1.start }) {
+            captions.merge(Pref.captions(from: words.filter { part.range.contains($0.start) }, videoEnd: part.end))
+        }
         status = "\(captions.count) captions. Edit any text, then Export."
     }
 
@@ -484,6 +607,7 @@ final class AppModel {
     func export(to out: URL) async {
         guard let asset else { return }
         if isCropping { finishCropping() }
+        if isTrimming { finishTrimming() }
         isBusy = true
         status = "Exporting…"
         defer { isBusy = false }
@@ -495,7 +619,8 @@ final class AppModel {
             let composition = try await CaptionRenderer.composition(for: asset, overlay: exportOverlay, crop: crop,
                                                                     maxLongSide: quality.maxLongSide)
             exportOverlay.update(captions, size: composition.renderSize, style: style)
-            try await CaptionRenderer.export(asset: asset, composition: composition, to: out)
+            try await CaptionRenderer.export(asset: asset, composition: composition,
+                                            trim: isTrimmed ? trim : nil, to: out)
             let size = (try? out.resourceValues(forKeys: [.fileSizeKey]).fileSize).map {
                 ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file)
             } ?? ""

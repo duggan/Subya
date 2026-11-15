@@ -17,8 +17,10 @@ public enum CaptionError: LocalizedError {
 /// from the CLI.
 public enum Transcriber {
     /// Transcribes the video's audio and returns words with timings. `status` reports
-    /// progress ("Downloading speech model…" the first time a language is used).
-    public static func words(for videoURL: URL, locale preferred: Locale = .current,
+    /// progress ("Downloading speech model…" the first time a language is used). With a
+    /// `range`, only that part is transcribed (much quicker for a long video); word times
+    /// are still in the video's time.
+    public static func words(for videoURL: URL, locale preferred: Locale = .current, range: Trim? = nil,
                              status: @escaping @Sendable (String) -> Void = { _ in }) async throws -> [Word] {
         let asset = AVURLAsset(url: videoURL)
         guard try await !asset.loadTracks(withMediaType: .audio).isEmpty else { throw CaptionError.noAudio }
@@ -29,7 +31,9 @@ public enum Transcriber {
         guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
             throw CaptionError.exportFailed
         }
+        if let range { export.timeRange = range.timeRange }
         try await export.export(to: audioURL, as: .m4a)
+        try Task.checkCancellation()
 
         var locale = await SpeechTranscriber.supportedLocale(equivalentTo: preferred)
         if locale == nil { locale = await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: "en-US")) }
@@ -57,7 +61,10 @@ public enum Transcriber {
         } else {
             await analyzer.cancelAndFinishNow()
         }
-        return try await collector.value.sorted { $0.start < $1.start }
+        let offset = range?.start ?? 0
+        return try await collector.value
+            .map { Word(text: $0.text, start: $0.start + offset, end: $0.end + offset) }
+            .sorted { $0.start < $1.start }
     }
 
     /// Splits a result's attributed text into words using its per-run audio time ranges.

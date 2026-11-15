@@ -14,6 +14,10 @@ import SwiftUI
 /// The timeline zooms (`AppModel.timelineZoom`, pinch, or View › Zoom In/Out) and then
 /// scrolls sideways, following the playhead. A ruler above the blocks shows the time.
 ///
+/// It shows `AppModel.timelineRange`: the trimmed part, or the whole video while trimming.
+/// In trim mode the captions are dimmed (still visible, to trim around the speech) and a
+/// yellow frame with grips marks the part kept; drag its ends.
+///
 /// For responsiveness, only `TimelinePlayhead` reads the playhead time (which changes 30
 /// times a second); blocks read `currentCaptionID`/`currentWordIndex`, and the filmstrip
 /// is its own view with its own model, so thumbnails arriving don't re-render the blocks.
@@ -23,7 +27,7 @@ struct CaptionTimeline: View {
     @State private var filmstrip = Filmstrip()
 
     private struct Drag {
-        enum Kind: Equatable { case move, start, end, word(Int) }
+        enum Kind: Equatable { case move, start, end, word(Int), trimStart, trimEnd }
         let id: Caption.ID
         let kind: Kind
         let start: Double
@@ -43,6 +47,7 @@ struct CaptionTimeline: View {
     private let lane: CGFloat = 48
     private let rulerHeight: CGFloat = 14
     private let gripWidth: CGFloat = 12
+    private let trimGripWidth: CGFloat = 16
 
     @State private var scrollPosition = ScrollPosition()
     @State private var offsetX: CGFloat = 0
@@ -51,12 +56,13 @@ struct CaptionTimeline: View {
 
     var body: some View {
         GeometryReader { geo in
+            let range = model.timelineRange
             let contentWidth = geo.size.width * model.timelineZoom
-            let scale = contentWidth / max(model.duration, 0.1)  // points per second
+            let scale = contentWidth / max(range.upperBound - range.lowerBound, 0.1)  // points per second
             ScrollView(.horizontal) {
                 ZStack(alignment: .topLeading) {
                     ruler(scale: scale, width: contentWidth)
-                    FilmstripView(filmstrip: filmstrip, frameSize: model.frameSize, duration: model.duration,
+                    FilmstripView(filmstrip: filmstrip, frameSize: model.frameSize, range: range,
                                   scale: scale, contentWidth: contentWidth, height: lane,
                                   visibleRange: offsetX...(offsetX + max(visibleWidth, geo.size.width)))
                         .frame(width: contentWidth, height: lane)
@@ -64,9 +70,12 @@ struct CaptionTimeline: View {
                         .gesture(scrubGesture(scale: scale))
                         .help("Click or drag to scrub")
                         .offset(y: rulerHeight)
-                    ForEach(model.captions) { cap in
+                    ForEach(model.captions.filter { model.isTrimming || model.trim.shows($0) }) { cap in
                         block(cap, scale: scale)
+                            .opacity(model.isTrimming ? 0.45 : 1)
+                            .allowsHitTesting(!model.isTrimming)
                     }
+                    if model.isTrimming { trimFrame(scale: scale) }
                     TimelinePlayhead(model: model, scale: scale, height: rulerHeight + lane,
                                      contentWidth: contentWidth, offsetX: offsetX,
                                      visibleWidth: visibleWidth, isDragging: drag != nil,
@@ -87,6 +96,7 @@ struct CaptionTimeline: View {
             .onChange(of: model.timelineZoom) { old, new in
                 keepAnchored(oldZoom: old, newZoom: new, width: geo.size.width)
             }
+            .onChange(of: model.isTrimming) { scrollPosition.scrollTo(x: 0) }
             .simultaneousGesture(MagnifyGesture()
                 .onChanged { value in
                     if pinchStart == nil { pinchStart = model.timelineZoom }
@@ -102,11 +112,13 @@ struct CaptionTimeline: View {
     /// Zooming keeps the playhead at the same place on screen (or, if it's out of view,
     /// the middle of the view).
     private func keepAnchored(oldZoom: Double, newZoom: Double, width: CGFloat) {
-        let oldScale = width * oldZoom / max(model.duration, 0.1)
-        let newScale = width * newZoom / max(model.duration, 0.1)
-        let playX = model.currentTime * oldScale
+        let range = model.timelineRange
+        let span = max(range.upperBound - range.lowerBound, 0.1)
+        let oldScale = width * oldZoom / span
+        let newScale = width * newZoom / span
+        let playX = (model.currentTime - range.lowerBound) * oldScale
         let onScreen = playX >= offsetX && playX <= offsetX + width
-        let anchorTime = onScreen ? model.currentTime : (offsetX + width / 2) / oldScale
+        let anchorTime = onScreen ? model.currentTime - range.lowerBound : (offsetX + width / 2) / oldScale
         let screenX = anchorTime * oldScale - offsetX
         let contentWidth = width * newZoom
         let target = min(max(anchorTime * newScale - screenX, 0), max(contentWidth - width, 0))
@@ -115,13 +127,15 @@ struct CaptionTimeline: View {
 
     // MARK: - Ruler and scrubbing
 
-    /// Time labels, spaced at least 60 points apart, with minor ticks between. Click or
-    /// drag it to scrub, like the filmstrip.
+    /// Time labels, spaced at least 60 points apart, with minor ticks between, counted from
+    /// the trim's start (as in the exported clip). Click or drag it to scrub, like the
+    /// filmstrip.
     private func ruler(scale: CGFloat, width: CGFloat) -> some View {
         let steps: [Double] = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600]
         let major = steps.first { $0 * scale >= 60 } ?? 1200
         let minor = steps.last { $0 < major && $0 * scale >= 10 } ?? major
-        let minorCount = Int(model.duration / minor)
+        let range = model.timelineRange
+        let minorCount = Int((range.upperBound - range.lowerBound) / minor)
         return ZStack(alignment: .topLeading) {
             Rectangle().fill(.clear)
             ForEach(0...max(minorCount, 0), id: \.self) { i in
@@ -153,8 +167,9 @@ struct CaptionTimeline: View {
 
     private func scrubGesture(scale: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 0).onChanged { value in
+            let range = model.timelineRange
             model.player?.pause()
-            model.seek(to: min(max(value.location.x / scale, 0), model.duration))
+            model.seek(to: min(max(range.lowerBound + value.location.x / scale, range.lowerBound), range.upperBound))
         }
     }
 
@@ -193,7 +208,7 @@ struct CaptionTimeline: View {
             .overlay(alignment: .leading) { grip(cap, kind: .start, selected: selected, scale: scale) }
             .overlay(alignment: .trailing) { grip(cap, kind: .end, selected: selected, scale: scale) }
             .frame(width: width, height: lane - 4)
-            .offset(x: cap.start * scale, y: rulerHeight + 2)
+            .offset(x: (cap.start - model.timelineRange.lowerBound) * scale, y: rulerHeight + 2)
             .help(cap.text.isEmpty ? "Empty line" : cap.text)
     }
 
@@ -269,6 +284,66 @@ struct CaptionTimeline: View {
             .help("Drag to change when this word appears")
     }
 
+    // MARK: - Trimming
+
+    /// The part kept, framed in yellow with chevron grips at its ends, as in Photos; the
+    /// rest is dimmed. Only the grips take clicks, so the filmstrip still scrubs.
+    private func trimFrame(scale: CGFloat) -> some View {
+        let trim = model.trim
+        let x0 = trim.start * scale, x1 = trim.end * scale
+        let total = model.duration * scale
+        let width = max(x1 - x0, trimGripWidth * 2)
+        return ZStack(alignment: .topLeading) {
+            Rectangle().fill(.black.opacity(0.55))
+                .frame(width: max(x0, 0), height: lane)
+                .allowsHitTesting(false)
+            Rectangle().fill(.black.opacity(0.55))
+                .frame(width: max(total - x1, 0), height: lane)
+                .offset(x: x1)
+                .allowsHitTesting(false)
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(Color.yellow, lineWidth: 3)
+                .frame(width: width, height: lane)
+                .offset(x: x0)
+                .allowsHitTesting(false)
+            trimGrip(.trimStart, scale: scale).offset(x: x0)
+            trimGrip(.trimEnd, scale: scale).offset(x: x0 + width - trimGripWidth)
+        }
+        .offset(y: rulerHeight)
+    }
+
+    private func trimGrip(_ kind: Drag.Kind, scale: CGFloat) -> some View {
+        let leading = kind == .trimStart
+        return ZStack {
+            UnevenRoundedRectangle(topLeadingRadius: leading ? 6 : 0, bottomLeadingRadius: leading ? 6 : 0,
+                                   bottomTrailingRadius: leading ? 0 : 6, topTrailingRadius: leading ? 0 : 6)
+                .fill(Color.yellow)
+            Image(systemName: leading ? "chevron.compact.left" : "chevron.compact.right")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(.black.opacity(0.75))
+        }
+        .frame(width: trimGripWidth, height: lane)
+        .contentShape(Rectangle())
+        .gesture(trimDrag(kind, scale: scale))
+        .pointerStyle(.columnResize)
+        .help(leading ? "Drag to set where the clip starts" : "Drag to set where the clip ends")
+    }
+
+    private func trimDrag(_ kind: Drag.Kind, scale: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space))
+            .onChanged { value in
+                if drag == nil {
+                    model.player?.pause()
+                    drag = Drag(id: UUID(), kind: kind, start: model.trim.start, end: model.trim.end)
+                }
+                guard let drag else { return }
+                let delta = value.translation.width / scale
+                model.setTrimEdge(kind == .trimStart ? .start : .end,
+                                  to: (kind == .trimStart ? drag.start : drag.end) + delta)
+            }
+            .onEnded { _ in drag = nil }
+    }
+
     // MARK: - Dragging
 
     private func dragGesture(_ cap: Caption, kind: Drag.Kind, scale: CGFloat) -> some Gesture {
@@ -290,13 +365,14 @@ struct CaptionTimeline: View {
                 case .start: model.setEdge(.start, of: drag.id, to: drag.start + delta)
                 case .end: model.setEdge(.end, of: drag.id, to: drag.end + delta)
                 case .word(let i): model.setWordStart(i, of: drag.id, to: drag.wordStart + delta)
+                case .trimStart, .trimEnd: break
                 }
             }
             .onEnded { value in
                 // A click without movement selects the caption: jump there and edit its text.
                 // In one-word display, clicking a word jumps to that word.
                 if abs(value.translation.width) < 2, let drag {
-                    let clicked = value.startLocation.x / scale
+                    let clicked = model.timelineRange.lowerBound + value.startLocation.x / scale
                     let word = wordMode && drag.kind == .move
                         ? cap.timedWords.last { clicked >= $0.start }?.start : nil
                     model.select(drag.id, at: word)
@@ -323,7 +399,8 @@ private struct TimelinePlayhead: View {
     @Binding var scrollPosition: ScrollPosition
 
     var body: some View {
-        let x = min(max(model.currentTime, 0), model.duration) * scale
+        let range = model.timelineRange
+        let x = (min(max(model.currentTime, range.lowerBound), range.upperBound) - range.lowerBound) * scale
         VStack(spacing: 0) {
             Capsule()
                 .fill(.white)
@@ -341,7 +418,7 @@ private struct TimelinePlayhead: View {
 
     private func follow(_ time: Double) {
         guard !isDragging, model.timelineZoom > 1.01, visibleWidth > 0 else { return }
-        let x = time * scale
+        let x = (time - model.timelineRange.lowerBound) * scale
         guard x < offsetX + 8 || x > offsetX + visibleWidth - 8 else { return }
         let target = min(max(x - visibleWidth * 0.25, 0), max(contentWidth - visibleWidth, 0))
         scrollPosition.scrollTo(x: target)
@@ -411,7 +488,8 @@ final class Filmstrip {
 private struct FilmstripView: View {
     let filmstrip: Filmstrip
     let frameSize: CGSize
-    let duration: Double
+    /// The stretch of the video shown, in seconds.
+    let range: ClosedRange<Double>
     let scale: CGFloat
     let contentWidth: CGFloat
     let height: CGFloat
@@ -432,7 +510,7 @@ private struct FilmstripView: View {
 
     /// The time (ms) a tile shows: its middle.
     private func time(of tile: Int) -> Int {
-        let seconds = min((CGFloat(tile) + 0.5) * tileWidth / max(scale, 0.001), duration)
+        let seconds = min(range.lowerBound + (CGFloat(tile) + 0.5) * tileWidth / max(scale, 0.001), range.upperBound)
         return Int((seconds * 1000).rounded())
     }
 
@@ -453,7 +531,7 @@ private struct FilmstripView: View {
         }
         .frame(width: contentWidth, height: height, alignment: .topLeading)
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .task(id: RequestKey(tiles: tiles, tileWidth: tileWidth, scale: scale)) {
+        .task(id: RequestKey(tiles: tiles, tileWidth: tileWidth, scale: scale, start: range.lowerBound)) {
             filmstrip.request(tiles.map(time(of:)), tolerance: Double(tileWidth / max(scale, 0.001)) / 2)
         }
     }
@@ -462,5 +540,6 @@ private struct FilmstripView: View {
         let tiles: Range<Int>
         let tileWidth: CGFloat
         let scale: CGFloat
+        let start: Double
     }
 }
